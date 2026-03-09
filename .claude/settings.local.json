@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --yes)",
+      "Read(//d/Apps/Wander/**)",
+      "Bash(rm \"Recruitment Cycle/package.json\")",
+      "Bash(npx create-next-app@latest rekru-temp --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --yes)",
+      "Bash(cp -r rekru-temp/.git \"Recruitment Cycle/\")",
+      "Bash(cp rekru-temp/.gitignore \"Recruitment Cycle/\")",
+      "Bash(for f in README.md eslint.config.mjs next-env.d.ts next.config.ts package-lock.json package.json postcss.config.mjs tsconfig.json)",
+      "Bash(do cp \"rekru-temp/$f\" \"Recruitment Cycle/$f\")",
+      "Bash(done)",
+      "Bash(cp -r rekru-temp/public \"Recruitment Cycle/\")",
+      "Bash(cp -r rekru-temp/src \"Recruitment Cycle/\")",
+      "Bash(cp -r rekru-temp/node_modules \"Recruitment Cycle/\")",
+      "Bash(sed -i 's/\"\"rekru-temp\"\"/\"\"rekru\"\"/' package.json)",
+      "Bash(rm -rf \"d:/Apps/Wander/rekru-temp\")",
+      "Bash(npm install prisma @prisma/client bcryptjs iron-session zod lucide-react)",
+      "Bash(npm install -D @types/bcryptjs)",
+      "Bash(npx prisma init)",
+      "Bash(npx shadcn@latest init -y --defaults)"
+    ]
+  }
+}
