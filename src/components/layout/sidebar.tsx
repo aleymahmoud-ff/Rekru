@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   Briefcase,
+  ClipboardList,
   Settings,
   Users,
   Palette,
@@ -27,6 +28,7 @@ interface NavItem {
 const mainNav: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Jobs', href: '/jobs', icon: Briefcase },
+  { label: 'Interviews', href: '/interviews', icon: ClipboardList },
 ]
 
 const settingsNav: NavItem[] = [

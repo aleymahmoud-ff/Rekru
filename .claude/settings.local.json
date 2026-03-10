@@ -38,7 +38,9 @@
       "Bash(sed -i 's/export async function register\\(formData: FormData\\)/export async function register\\(_prevState: ActionResult, formData: FormData\\)/' src/actions/auth.ts)",
       "Bash(sed -i 's/export async function login\\(formData: FormData\\)/export async function login\\(_prevState: ActionResult, formData: FormData\\)/' src/actions/auth.ts)",
       "Bash(npx prisma migrate dev --name init)",
-      "Bash(npx tsx prisma/seed.ts)"
+      "Bash(npx tsx prisma/seed.ts)",
+      "Bash(node -e \":*)",
+      "Bash(node -e \"const { PrismaClient } = require\\(''@prisma/client''\\); const p = new PrismaClient\\(\\); p.user.findFirst\\(\\).then\\(u => { console.log\\(''DB OK, user:'', u && u.email\\); p[''$disconnect'']\\(\\); }\\).catch\\(e => { console.error\\(''DB error:'', e.message\\); p[''$disconnect'']\\(\\); }\\);\")"
     ]
   }
 }
