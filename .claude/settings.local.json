@@ -36,7 +36,9 @@
       "Bash(rm -rf src/generated)",
       "Bash(rm -f prisma/prisma.config.ts prisma.config.ts)",
       "Bash(sed -i 's/export async function register\\(formData: FormData\\)/export async function register\\(_prevState: ActionResult, formData: FormData\\)/' src/actions/auth.ts)",
-      "Bash(sed -i 's/export async function login\\(formData: FormData\\)/export async function login\\(_prevState: ActionResult, formData: FormData\\)/' src/actions/auth.ts)"
+      "Bash(sed -i 's/export async function login\\(formData: FormData\\)/export async function login\\(_prevState: ActionResult, formData: FormData\\)/' src/actions/auth.ts)",
+      "Bash(npx prisma migrate dev --name init)",
+      "Bash(npx tsx prisma/seed.ts)"
     ]
   }
 }
