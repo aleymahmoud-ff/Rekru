@@ -16,15 +16,57 @@ export async function conductInterview(input: unknown): Promise<ActionResult> {
     return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' }
   }
 
-  const { jobCandidateId, stageId, outcome, overallNotes, answers } = parsed.data
+  const { jobCandidateId, stageId, outcome, overallNotes, answers, interviewId } = parsed.data
 
-  // Verify the job candidate exists and is at this stage
+  // Verify the job candidate exists
   const jobCandidate = await prisma.jobCandidate.findUnique({
     where: { id: jobCandidateId },
     select: { id: true, currentStageId: true, status: true, jobId: true },
   })
 
   if (!jobCandidate) return { success: false, error: 'Candidate not found' }
+
+  // --- EDIT MODE ---
+  if (interviewId) {
+    const existing = await prisma.interview.findUnique({
+      where: { id: interviewId },
+      select: { id: true, outcome: true, jobCandidateId: true, stageId: true },
+    })
+    if (!existing) return { success: false, error: 'Interview not found' }
+
+    // Delete old answers and create new ones, update interview
+    await prisma.$transaction(async (tx) => {
+      await tx.interviewAnswer.deleteMany({ where: { interviewId } })
+      await tx.interview.update({
+        where: { id: interviewId },
+        data: {
+          outcome: outcome as 'pass' | 'fail' | 'on_hold',
+          overallNotes: overallNotes || null,
+          updatedAt: new Date(),
+          updatedById: user.id,
+          answers: {
+            create: answers.map((a) => ({
+              questionId: a.questionId,
+              optionId: a.optionId,
+              notes: a.notes || null,
+            })),
+          },
+        },
+      })
+    })
+
+    // Handle outcome changes if the candidate is still active at this stage
+    if (jobCandidate.status === 'active' && jobCandidate.currentStageId === existing.stageId) {
+      await handleOutcomeChange(existing.stageId, jobCandidateId, outcome)
+    }
+
+    revalidatePath('/dashboard')
+    revalidatePath(`/jobs/${jobCandidate.jobId}`)
+    revalidatePath('/interviews')
+    return { success: true }
+  }
+
+  // --- NEW INTERVIEW MODE ---
   if (jobCandidate.status !== 'active') return { success: false, error: 'Candidate is not active in the pipeline' }
   if (jobCandidate.currentStageId !== stageId) return { success: false, error: 'Candidate is not at this stage' }
 
@@ -59,9 +101,16 @@ export async function conductInterview(input: unknown): Promise<ActionResult> {
     },
   })
 
-  // Handle outcome
+  await handleOutcomeChange(stageId, jobCandidateId, outcome)
+
+  revalidatePath('/dashboard')
+  revalidatePath(`/jobs/${jobCandidate.jobId}`)
+  revalidatePath('/interviews')
+  return { success: true }
+}
+
+async function handleOutcomeChange(stageId: string, jobCandidateId: string, outcome: string) {
   if (outcome === 'pass') {
-    // Find next active stage
     const currentStage = await prisma.interviewStage.findUnique({
       where: { id: stageId },
       select: { sortOrder: true },
@@ -77,13 +126,11 @@ export async function conductInterview(input: unknown): Promise<ActionResult> {
     })
 
     if (nextStage) {
-      // Move to next stage
       await prisma.jobCandidate.update({
         where: { id: jobCandidateId },
         data: { currentStageId: nextStage.id },
       })
     } else {
-      // No more stages — hired!
       await prisma.jobCandidate.update({
         where: { id: jobCandidateId },
         data: { status: 'hired', hiredAt: new Date(), currentStageId: null },
@@ -96,11 +143,6 @@ export async function conductInterview(input: unknown): Promise<ActionResult> {
     })
   }
   // on_hold: no change — stays at current stage
-
-  revalidatePath('/dashboard')
-  revalidatePath(`/jobs/${jobCandidate.jobId}`)
-  revalidatePath('/interviews')
-  return { success: true }
 }
 
 export async function getCandidatesForStage(stageId: string) {
@@ -155,4 +197,54 @@ export async function getStagesWithCounts() {
     sortOrder: s.sortOrder,
     candidateCount: s._count.jobCandidates,
   }))
+}
+
+export async function getExistingInterview(jobCandidateId: string, stageId: string) {
+  const interview = await prisma.interview.findUnique({
+    where: { jobCandidateId_stageId: { jobCandidateId, stageId } },
+    include: {
+      answers: {
+        include: {
+          question: { select: { id: true } },
+          option: { select: { id: true } },
+        },
+      },
+      interviewer: { select: { fullName: true } },
+      updatedBy: { select: { fullName: true } },
+    },
+  })
+  return interview
+}
+
+export async function getInterviewById(interviewId: string) {
+  return prisma.interview.findUnique({
+    where: { id: interviewId },
+    include: {
+      answers: {
+        include: {
+          question: { select: { id: true } },
+          option: { select: { id: true } },
+        },
+      },
+      interviewer: { select: { fullName: true } },
+      updatedBy: { select: { fullName: true } },
+      jobCandidate: {
+        include: {
+          candidate: { select: { fullName: true, email: true } },
+          job: { select: { id: true, title: true } },
+        },
+      },
+      stage: {
+        include: {
+          questions: {
+            where: { isActive: true },
+            orderBy: { sortOrder: 'asc' },
+            include: {
+              options: { orderBy: { sortOrder: 'asc' } },
+            },
+          },
+        },
+      },
+    },
+  })
 }

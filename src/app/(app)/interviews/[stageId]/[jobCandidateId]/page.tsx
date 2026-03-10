@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { PageHeader } from '@/components/shared/page-header'
-import { getInterviewFormData } from '@/actions/interviews'
+import { getInterviewFormData, getExistingInterview } from '@/actions/interviews'
 import { prisma } from '@/lib/db'
 import { InterviewForm } from '@/components/interviews/interview-form'
 
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default async function ConductInterviewPage({ params }: Props) {
   const { stageId, jobCandidateId } = await params
 
-  const [stage, jobCandidate] = await Promise.all([
+  const [stage, jobCandidate, existingInterview] = await Promise.all([
     getInterviewFormData(stageId),
     prisma.jobCandidate.findUnique({
       where: { id: jobCandidateId },
@@ -23,16 +23,35 @@ export default async function ConductInterviewPage({ params }: Props) {
         job: { select: { title: true } },
       },
     }),
+    getExistingInterview(jobCandidateId, stageId),
   ])
 
   if (!stage || !jobCandidate) notFound()
   if (jobCandidate.currentStageId !== stageId) notFound()
   if (jobCandidate.status !== 'active') notFound()
 
+  // Prepare initial data from existing on_hold interview
+  const initialData = existingInterview
+    ? {
+        interviewId: existingInterview.id,
+        outcome: existingInterview.outcome as 'pass' | 'fail' | 'on_hold',
+        overallNotes: existingInterview.overallNotes,
+        answers: existingInterview.answers.map((a) => ({
+          questionId: a.question.id,
+          optionId: a.option.id,
+          notes: a.notes,
+        })),
+        conductedAt: existingInterview.conductedAt,
+        interviewer: existingInterview.interviewer,
+        updatedAt: existingInterview.updatedAt,
+        updatedBy: existingInterview.updatedBy,
+      }
+    : null
+
   return (
     <div className="max-w-3xl">
       <PageHeader
-        title={`Interview: ${jobCandidate.candidate.fullName}`}
+        title={`${existingInterview ? 'Re-interview' : 'Interview'}: ${jobCandidate.candidate.fullName}`}
         description={`${stage.name} · ${jobCandidate.job.title}`}
       />
 
@@ -40,6 +59,7 @@ export default async function ConductInterviewPage({ params }: Props) {
         stageId={stageId}
         jobCandidateId={jobCandidateId}
         questions={stage.questions}
+        initialData={initialData}
       />
     </div>
   )

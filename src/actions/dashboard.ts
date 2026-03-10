@@ -41,11 +41,12 @@ export async function getDashboardStats() {
         jobCandidate: {
           include: {
             candidate: { select: { fullName: true } },
-            job: { select: { title: true } },
+            job: { select: { id: true, title: true } },
           },
         },
         stage: { select: { name: true } },
         interviewer: { select: { fullName: true } },
+        updatedBy: { select: { fullName: true } },
       },
     }),
 

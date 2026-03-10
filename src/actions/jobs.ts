@@ -73,7 +73,10 @@ export async function getJobWithCandidates(jobId: string) {
           candidate: true,
           currentStage: true,
           interviews: {
-            include: { stage: true },
+            include: {
+              stage: true,
+              updatedBy: { select: { fullName: true } },
+            },
             orderBy: { conductedAt: 'desc' },
           },
         },

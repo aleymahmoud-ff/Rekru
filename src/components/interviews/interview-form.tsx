@@ -6,6 +6,7 @@ import { conductInterview } from '@/actions/interviews'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
+import { Pencil } from 'lucide-react'
 
 type Question = {
   id: string
@@ -13,27 +14,58 @@ type Question = {
   options: { id: string; label: string; value: number }[]
 }
 
+type InitialData = {
+  interviewId: string
+  outcome: 'pass' | 'fail' | 'on_hold'
+  overallNotes: string | null
+  answers: { questionId: string; optionId: string; notes: string | null }[]
+  conductedAt: Date | string
+  interviewer: { fullName: string }
+  updatedAt: Date | string | null
+  updatedBy: { fullName: string } | null
+}
+
 export function InterviewForm({
   stageId,
   jobCandidateId,
   questions,
+  initialData,
+  redirectTo,
 }: {
   stageId: string
   jobCandidateId: string
   questions: Question[]
+  initialData?: InitialData | null
+  redirectTo?: string
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
+  const isEdit = !!initialData
+
   const [answers, setAnswers] = useState<Record<string, { optionId: string; notes: string }>>(
-    () =>
-      Object.fromEntries(
+    () => {
+      if (initialData) {
+        const map: Record<string, { optionId: string; notes: string }> = {}
+        for (const q of questions) {
+          const saved = initialData.answers.find((a) => a.questionId === q.id)
+          map[q.id] = {
+            optionId: saved?.optionId ?? '',
+            notes: saved?.notes ?? '',
+          }
+        }
+        return map
+      }
+      return Object.fromEntries(
         questions.map((q) => [q.id, { optionId: '', notes: '' }])
       )
+    }
   )
-  const [outcome, setOutcome] = useState<'pass' | 'fail' | 'on_hold' | ''>('')
-  const [overallNotes, setOverallNotes] = useState('')
+  const [outcome, setOutcome] = useState<'pass' | 'fail' | 'on_hold' | ''>(
+    initialData?.outcome ?? ''
+  )
+  const [overallNotes, setOverallNotes] = useState(initialData?.overallNotes ?? '')
 
   const handleSubmit = () => {
     if (!outcome) {
@@ -54,6 +86,7 @@ export function InterviewForm({
         stageId,
         outcome,
         overallNotes: overallNotes || undefined,
+        interviewId: initialData?.interviewId,
         answers: questions.map((q) => ({
           questionId: q.id,
           optionId: answers[q.id].optionId,
@@ -62,7 +95,7 @@ export function InterviewForm({
       })
 
       if (result.success) {
-        router.push(`/interviews/${stageId}`)
+        router.push(redirectTo ?? `/interviews/${stageId}`)
       } else {
         setError(result.error ?? 'Something went wrong')
       }
@@ -71,6 +104,45 @@ export function InterviewForm({
 
   return (
     <div className="space-y-6">
+      {/* Edit badge */}
+      {isEdit && initialData.updatedAt && (
+        <div
+          className="flex items-center gap-2 rounded-lg border px-4 py-2.5 text-xs"
+          style={{
+            fontFamily: 'var(--font-body)',
+            backgroundColor: '#fffbeb',
+            borderColor: '#fde68a',
+            color: '#92400e',
+          }}
+        >
+          <Pencil className="h-3.5 w-3.5" />
+          <span>
+            Last edited by <span className="font-semibold">{initialData.updatedBy?.fullName ?? 'Unknown'}</span>
+            {' '}on {new Date(initialData.updatedAt).toLocaleDateString()} at{' '}
+            {new Date(initialData.updatedAt).toLocaleTimeString()}
+          </span>
+        </div>
+      )}
+
+      {isEdit && !initialData.updatedAt && (
+        <div
+          className="flex items-center gap-2 rounded-lg border px-4 py-2.5 text-xs"
+          style={{
+            fontFamily: 'var(--font-body)',
+            backgroundColor: '#eff6ff',
+            borderColor: '#bfdbfe',
+            color: '#1e40af',
+          }}
+        >
+          <Pencil className="h-3.5 w-3.5" />
+          <span>
+            Originally conducted by <span className="font-semibold">{initialData.interviewer.fullName}</span>
+            {' '}on {new Date(initialData.conductedAt).toLocaleDateString()}
+            {' — You are editing this interview'}
+          </span>
+        </div>
+      )}
+
       {/* Questions */}
       {questions.map((question, qi) => (
         <div
@@ -224,7 +296,10 @@ export function InterviewForm({
           className="flex-1 rounded-lg px-4 py-3 text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50"
           style={{ backgroundColor: '#1e3a5f', fontFamily: 'var(--font-body)' }}
         >
-          {isPending ? 'Submitting...' : 'Submit Interview'}
+          {isPending
+            ? (isEdit ? 'Saving...' : 'Submitting...')
+            : (isEdit ? 'Save Changes' : 'Submit Interview')
+          }
         </button>
       </div>
     </div>

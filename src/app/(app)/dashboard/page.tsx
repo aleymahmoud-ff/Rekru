@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
+  Pencil,
 } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -130,12 +131,24 @@ export default async function DashboardPage() {
                 className="flex items-center justify-between px-5 py-3.5 hover:bg-[#faf9f7] transition-colors"
               >
                 <div className="min-w-0">
-                  <p
-                    className="text-sm font-medium truncate"
-                    style={{ fontFamily: 'var(--font-body)', color: '#1a1a1a' }}
-                  >
-                    {interview.jobCandidate.candidate.fullName}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p
+                      className="text-sm font-medium truncate"
+                      style={{ fontFamily: 'var(--font-body)', color: '#1a1a1a' }}
+                    >
+                      {interview.jobCandidate.candidate.fullName}
+                    </p>
+                    {interview.updatedAt && (
+                      <span
+                        className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium border shrink-0"
+                        style={{ color: '#92400e', backgroundColor: '#fffbeb', borderColor: '#fde68a' }}
+                        title={`Edited by ${interview.updatedBy?.fullName ?? 'Unknown'} on ${new Date(interview.updatedAt).toLocaleString()}`}
+                      >
+                        <Pencil className="h-2 w-2" />
+                        Edited
+                      </span>
+                    )}
+                  </div>
                   <p
                     className="text-xs truncate"
                     style={{ fontFamily: 'var(--font-body)', color: '#9c9690' }}
@@ -151,6 +164,14 @@ export default async function DashboardPage() {
                   >
                     {new Date(interview.conductedAt).toLocaleDateString()}
                   </p>
+                  <Link
+                    href={`/interviews/edit/${interview.id}`}
+                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors hover:bg-[#f0eeeb]"
+                    style={{ fontFamily: 'var(--font-body)', color: '#e8913a' }}
+                  >
+                    <Pencil className="h-3 w-3" />
+                    Edit
+                  </Link>
                 </div>
               </div>
             ))}
