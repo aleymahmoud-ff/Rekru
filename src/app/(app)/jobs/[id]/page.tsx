@@ -8,6 +8,7 @@ import { JobStatusToggle } from '@/components/jobs/job-status-toggle'
 import { EditJobDialog } from '@/components/jobs/edit-job-dialog'
 import { DeleteJobButton } from '@/components/jobs/delete-job-button'
 import { RemoveCandidateButton } from '@/components/jobs/remove-candidate-button'
+import { JobPerformancePanel } from '@/components/jobs/job-performance-panel'
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -64,6 +65,8 @@ export default async function JobDetailPage({ params }: Props) {
           </div>
         }
       />
+
+      <JobPerformancePanel jobCandidates={job.jobCandidates} />
 
       {job.jobCandidates.length === 0 ? (
         <div

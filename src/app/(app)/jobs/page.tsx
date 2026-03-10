@@ -12,8 +12,18 @@ export const metadata: Metadata = {
   title: 'Jobs — Rekru',
 }
 
-export default async function JobsPage() {
-  const [jobs, jobSpecificQuestions] = await Promise.all([getJobs(), getJobSpecificQuestions()])
+type Props = {
+  searchParams: Promise<{ status?: string }>
+}
+
+export default async function JobsPage({ searchParams }: Props) {
+  const { status } = await searchParams
+  const tab = status === 'closed' ? 'closed' : 'open'
+
+  const [jobs, jobSpecificQuestions] = await Promise.all([
+    getJobs(tab),
+    getJobSpecificQuestions(),
+  ])
 
   return (
     <div>
@@ -22,6 +32,35 @@ export default async function JobsPage() {
         description="Manage your job openings"
         action={<CreateJobDialog jobSpecificQuestions={jobSpecificQuestions} />}
       />
+
+      {/* Tab switcher */}
+      <div
+        className="flex gap-1 mb-5 p-1 rounded-lg w-fit"
+        style={{ backgroundColor: '#f3f2ef' }}
+      >
+        <Link
+          href="/jobs"
+          className="px-4 py-1.5 rounded-md text-sm font-medium transition-colors"
+          style={
+            tab === 'open'
+              ? { backgroundColor: '#ffffff', color: '#1a1a1a', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', fontFamily: 'var(--font-body)' }
+              : { color: '#6b6560', fontFamily: 'var(--font-body)' }
+          }
+        >
+          Open
+        </Link>
+        <Link
+          href="/jobs?status=closed"
+          className="px-4 py-1.5 rounded-md text-sm font-medium transition-colors"
+          style={
+            tab === 'closed'
+              ? { backgroundColor: '#ffffff', color: '#1a1a1a', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', fontFamily: 'var(--font-body)' }
+              : { color: '#6b6560', fontFamily: 'var(--font-body)' }
+          }
+        >
+          Closed
+        </Link>
+      </div>
 
       {jobs.length === 0 ? (
         <div
@@ -38,13 +77,13 @@ export default async function JobsPage() {
             className="text-lg font-semibold mb-1"
             style={{ fontFamily: 'var(--font-display)', color: '#1a1a1a' }}
           >
-            No jobs yet
+            No {tab} jobs
           </p>
           <p
             className="text-sm mb-4"
             style={{ fontFamily: 'var(--font-body)', color: '#9c9690' }}
           >
-            Create your first job to start adding candidates
+            {tab === 'open' ? 'Create your first job to start adding candidates' : 'No closed jobs yet'}
           </p>
         </div>
       ) : (

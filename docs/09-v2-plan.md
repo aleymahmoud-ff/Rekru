@@ -262,16 +262,37 @@ No sidebar structural changes needed — the filtering happens in the data layer
 
 ---
 
-## Open Questions (to confirm before building)
+## Confirmed Decisions
 
-1. When a new job is created, should it be auto-assigned to all users, or must admin assign manually?
-   - **Suggested default**: Manual assignment. Admins always see all jobs regardless.
+> Answered 2026-03-10
 
-2. Should stage access control block viewing interviews (read) or only conducting new ones (write)?
-   - **Suggested default**: Controls both — users only see stages in their access list.
+1. **Job assignment on creation**: Manual. Admin must explicitly assign jobs to users after creation. Admins always see all jobs regardless of assignments.
 
-3. Should the user creation dialog send a welcome email with their password?
-   - **Suggested default**: No (email not implemented in V1). Admin communicates credentials manually.
+2. **Stage access — read vs write**:
+   - Stages a user is **assigned to**: full read + write (can conduct and view interviews)
+   - Stages **before** their assigned stages (earlier in the pipeline): read-only (can see interview history for context, cannot conduct)
+   - Stages **after** or **unrelated** to their assigned stages: not visible
 
-4. If a user's job assignment is removed mid-pipeline (candidate still active), what happens?
-   - **Suggested default**: User loses visibility immediately. Candidate stays in pipeline unaffected.
+   Example: A user assigned only to "Technical Interview" can:
+   - Read HR Interview results for their candidates (context)
+   - Conduct Technical Interview (their stage)
+   - Cannot see or conduct Final Interview
+
+3. **User creation — password**: Admin sets the initial password and communicates it manually. No email. User can change their own password after first login (password change feature to be added alongside this — see below).
+
+4. **Job reassignment when removed**: User loses visibility immediately. The candidate's pipeline continues unaffected. Admin or another assigned user picks up the work. The job can be reassigned to a different user at any time.
+
+---
+
+## Additional Requirement: Password Change
+
+Since admins set initial passwords, users need a way to change their own password.
+
+**New action**: `changePassword({ currentPassword, newPassword })` in `src/actions/settings.ts`
+- Verifies `currentPassword` against stored hash
+- Hashes and saves `newPassword`
+- Returns error if current password is wrong
+
+**New page or section**: Profile/Account settings (`/settings/account` or a section inside an existing user page)
+- Input: Current password, New password, Confirm new password
+- Accessible to all authenticated users (not admin-only)
