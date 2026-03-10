@@ -21,6 +21,9 @@
 | Name | File Path | Purpose | Created By |
 |------|-----------|---------|------------|
 | `cn()` | `src/lib/utils.ts` | Merges Tailwind class names conditionally | Reem |
+| `getSession()` | `src/lib/auth.ts` | Returns the iron-session instance for the current request | Nabil |
+| `getCurrentUser()` | `src/lib/auth.ts` | Reads session + fetches user from DB; returns `AuthUser \| null` (no password hash) | Nabil |
+| `SESSION_OPTIONS` | `src/lib/auth.ts` | Shared iron-session config (cookie name, TTL, security flags) | Nabil |
 
 ---
 
@@ -31,6 +34,8 @@
 | `ROLES` | `src/config/roles.ts` | All user role definitions and labels | Nabil |
 | `STAGE_OUTCOMES` | `src/config/stages.ts` | Pass/Fail/On Hold/Skip outcome definitions | Nabil |
 | `CANDIDATE_STATUSES` | `src/config/stages.ts` | All candidate pipeline status values | Nabil |
+| `loginSchema` | `src/lib/validations/auth.ts` | Zod schema for login form (email + password) | Nabil |
+| `registerSchema` | `src/lib/validations/auth.ts` | Zod schema for registration form (fullName + email + password) | Nabil |
 
 ---
 
@@ -39,7 +44,21 @@
 | Name | File Path | Purpose | Created By |
 |------|-----------|---------|------------|
 | `ActionResponse<T>` | `src/types/api.ts` | Standard server action response wrapper | Nabil |
-| `UserRole` | `src/types/auth.ts` | Union type of all role values | Nabil |
+| `UserRole` | `src/types/auth.ts` | Re-export of Prisma-generated UserRole union (`admin` \| `user`) | Nabil |
+| `UserStatus` | `src/types/auth.ts` | Re-export of Prisma-generated UserStatus union (`pending` \| `active` \| `inactive`) | Nabil |
+| `SessionData` | `src/types/auth.ts` | Shape of the iron-session payload `{ userId: string }` | Nabil |
+| `AuthUser` | `src/types/auth.ts` | Safe user object returned to server actions (no password hash) | Nabil |
+| `LoginInput` | `src/lib/validations/auth.ts` | Inferred type from `loginSchema` | Nabil |
+| `RegisterInput` | `src/lib/validations/auth.ts` | Inferred type from `registerSchema` | Nabil |
+
+---
+
+## UI Components
+
+| Name | File Path | Purpose | Created By |
+|------|-----------|---------|------------|
+| `<Sidebar>` | `src/components/layout/sidebar.tsx` | Fixed left nav with role-aware settings section and logout. Props: `user: AuthUser` | Yoki |
+| `<PageHeader>` | `src/components/shared/page-header.tsx` | Reusable page title/description/action bar. Props: `title`, `description?`, `action?` | Yoki |
 
 ---
 

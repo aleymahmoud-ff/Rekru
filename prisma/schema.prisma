@@ -1,14 +1,225 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  admin
+  user
+
+  @@map("user_role")
+}
+
+enum UserStatus {
+  pending
+  active
+  inactive
+
+  @@map("user_status")
+}
+
+enum JobStatus {
+  open
+  closed
+
+  @@map("job_status")
+}
+
+enum CandidatePipelineStatus {
+  active
+  hired
+  rejected
+  on_hold
+
+  @@map("candidate_pipeline_status")
+}
+
+enum InterviewOutcome {
+  pass
+  fail
+  on_hold
+
+  @@map("interview_outcome")
+}
+
+// ---------------------------------------------------------------------------
+// Models
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String     @id @default(uuid())
+  fullName     String     @map("full_name") @db.VarChar(255)
+  email        String     @unique @map("email") @db.VarChar(255)
+  passwordHash String     @map("password_hash")
+  role         UserRole?
+  status       UserStatus @default(pending)
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  jobs         Job[]
+  interviews   Interview[]
+
+  @@map("users")
+}
+
+model Job {
+  id          String    @id @default(uuid())
+  title       String    @map("title") @db.VarChar(255)
+  description String?
+  status      JobStatus @default(open)
+  createdById String    @map("created_by")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  createdBy      User           @relation(fields: [createdById], references: [id])
+  jobCandidates  JobCandidate[]
+
+  @@index([status], name: "jobs_status_idx")
+  @@index([createdById])
+  @@map("jobs")
+}
+
+model Candidate {
+  id        String   @id @default(uuid())
+  fullName  String   @map("full_name") @db.VarChar(255)
+  email     String   @unique @db.VarChar(255)
+  phone     String   @db.VarChar(50)
+  cvLink    String?  @map("cv_link")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  jobCandidates JobCandidate[]
+
+  @@map("candidates")
+}
+
+model JobCandidate {
+  id             String                  @id @default(uuid())
+  jobId          String                  @map("job_id")
+  candidateId    String                  @map("candidate_id")
+  currentStageId String?                 @map("current_stage_id")
+  status         CandidatePipelineStatus @default(active)
+  hiredAt        DateTime?               @map("hired_at")
+  createdAt      DateTime                @default(now()) @map("created_at")
+  updatedAt      DateTime                @updatedAt @map("updated_at")
+
+  job          Job             @relation(fields: [jobId], references: [id])
+  candidate    Candidate       @relation(fields: [candidateId], references: [id])
+  currentStage InterviewStage? @relation(fields: [currentStageId], references: [id])
+  interviews   Interview[]
+
+  @@unique([jobId, candidateId])
+  @@index([jobId], name: "job_candidates_job_idx")
+  @@index([candidateId], name: "job_candidates_candidate_idx")
+  @@index([status], name: "job_candidates_status_idx")
+  @@index([currentStageId], name: "job_candidates_stage_idx")
+  @@map("job_candidates")
+}
+
+model InterviewStage {
+  id        String   @id @default(uuid())
+  name      String   @db.VarChar(255)
+  sortOrder Int      @map("sort_order")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  questions     StageQuestion[]
+  jobCandidates JobCandidate[]
+  interviews    Interview[]
+
+  @@index([isActive, sortOrder], name: "interview_stages_order_idx")
+  @@map("interview_stages")
+}
+
+model StageQuestion {
+  id           String   @id @default(uuid())
+  stageId      String   @map("stage_id")
+  questionText String   @map("question_text")
+  sortOrder    Int      @map("sort_order")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  stage           InterviewStage    @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  options         QuestionOption[]
+  interviewAnswers InterviewAnswer[]
+
+  @@index([stageId, isActive, sortOrder], name: "stage_questions_stage_idx")
+  @@map("stage_questions")
+}
+
+model QuestionOption {
+  id         String   @id @default(uuid())
+  questionId String   @map("question_id")
+  label      String   @db.VarChar(255)
+  value      Int
+  sortOrder  Int      @map("sort_order")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  question         StageQuestion     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  interviewAnswers InterviewAnswer[]
+
+  @@index([questionId, sortOrder], name: "question_options_question_idx")
+  @@map("question_options")
+}
+
+model Interview {
+  id             String           @id @default(uuid())
+  jobCandidateId String           @map("job_candidate_id")
+  stageId        String           @map("stage_id")
+  interviewerId  String           @map("interviewer_id")
+  outcome        InterviewOutcome
+  overallNotes   String?          @map("overall_notes")
+  conductedAt    DateTime         @default(now()) @map("conducted_at")
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  jobCandidate JobCandidate      @relation(fields: [jobCandidateId], references: [id])
+  stage        InterviewStage    @relation(fields: [stageId], references: [id])
+  interviewer  User              @relation(fields: [interviewerId], references: [id])
+  answers      InterviewAnswer[]
+
+  @@unique([jobCandidateId, stageId])
+  @@index([jobCandidateId], name: "interviews_job_candidate_idx")
+  @@index([interviewerId], name: "interviews_interviewer_idx")
+  @@map("interviews")
+}
+
+model InterviewAnswer {
+  id          String   @id @default(uuid())
+  interviewId String   @map("interview_id")
+  questionId  String   @map("question_id")
+  optionId    String   @map("option_id")
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  interview Interview      @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  question  StageQuestion  @relation(fields: [questionId], references: [id])
+  option    QuestionOption @relation(fields: [optionId], references: [id])
+
+  @@unique([interviewId, questionId])
+  @@index([interviewId], name: "interview_answers_interview_idx")
+  @@map("interview_answers")
+}
+
+model AppSettings {
+  id             Int      @id @default(1)
+  appName        String   @default("Rekru") @map("app_name") @db.VarChar(255)
+  primaryColor   String   @default("#1e3a5f") @map("primary_color") @db.VarChar(7)
+  secondaryColor String   @default("#f8f7f4") @map("secondary_color") @db.VarChar(7)
+  accentColor    String   @default("#e8913a") @map("accent_color") @db.VarChar(7)
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("app_settings")
 }

@@ -18,7 +18,25 @@
       "Bash(npm install prisma @prisma/client bcryptjs iron-session zod lucide-react)",
       "Bash(npm install -D @types/bcryptjs)",
       "Bash(npx prisma init)",
-      "Bash(npx shadcn@latest init -y --defaults)"
+      "Bash(npx shadcn@latest init -y --defaults)",
+      "Bash(npx shadcn@latest add button card input label dialog dropdown-menu badge table textarea select separator toast tabs -y)",
+      "Bash(npx shadcn@latest add button card input label dialog dropdown-menu badge table textarea select separator sonner tabs -y)",
+      "Bash(mkdir -p src/actions src/components/layout src/components/shared src/lib/db src/hooks src/types)",
+      "Bash(touch src/actions/.gitkeep src/components/layout/.gitkeep src/components/shared/.gitkeep src/lib/db/.gitkeep src/hooks/.gitkeep src/types/.gitkeep)",
+      "Bash(npm install dotenv)",
+      "Bash(timeout 15 npm run dev)",
+      "Bash(grep -A 30 '\"\"dependencies\"\"')",
+      "Bash(npm install -D tsx)",
+      "Bash(npx prisma generate)",
+      "Bash(npx next build)",
+      "Bash(npm install prisma@5 @prisma/client@5)",
+      "Bash(npx prisma --version)",
+      "Bash(sed -i \"s|@/generated/prisma/client|@prisma/client|g\" src/lib/db.ts)",
+      "Bash(sed -i \"s|@/generated/prisma/enums|@prisma/client|g\" src/types/auth.ts)",
+      "Bash(rm -rf src/generated)",
+      "Bash(rm -f prisma/prisma.config.ts prisma.config.ts)",
+      "Bash(sed -i 's/export async function register\\(formData: FormData\\)/export async function register\\(_prevState: ActionResult, formData: FormData\\)/' src/actions/auth.ts)",
+      "Bash(sed -i 's/export async function login\\(formData: FormData\\)/export async function login\\(_prevState: ActionResult, formData: FormData\\)/' src/actions/auth.ts)"
     ]
   }
 }
