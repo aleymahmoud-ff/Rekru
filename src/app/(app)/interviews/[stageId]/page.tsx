@@ -24,12 +24,16 @@ export default async function StageCandidatesPage({ params }: Props) {
 
   if (!stage) notFound()
 
-  // Non-admin must have stage access
+  // Non-admin: if they have any stage access entries, restrict to only those stages
   if (user && user.role !== 'admin') {
-    const access = await prisma.userStageAccess.findUnique({
-      where: { userId_stageId: { userId: user.id, stageId } },
-    })
-    if (!access) notFound()
+    const [stageAccess, totalAccess] = await Promise.all([
+      prisma.userStageAccess.findUnique({
+        where: { userId_stageId: { userId: user.id, stageId } },
+      }),
+      prisma.userStageAccess.count({ where: { userId: user.id } }),
+    ])
+    // Only block if user has configured stage access AND this stage isn't in it
+    if (totalAccess > 0 && !stageAccess) notFound()
   }
 
   const candidates = await getCandidatesForStage(stageId)

@@ -209,8 +209,15 @@ export async function getStagesWithCounts() {
       prisma.userStageAccess.findMany({ where: { userId: user.id }, select: { stageId: true } }),
       prisma.jobAssignment.findMany({ where: { userId: user.id }, select: { jobId: true } }),
     ])
-    stageWhere = { isActive: true, id: { in: stageRows.map((r) => r.stageId) } }
-    candidateWhere = { status: 'active', jobId: { in: jobRows.map((r) => r.jobId) } }
+    const jobIds = jobRows.map((r) => r.jobId)
+    // Stage access is opt-in restriction: if no entries configured, user can access all stages
+    // for their assigned jobs. If entries exist, restrict to only those stages.
+    if (stageRows.length > 0) {
+      stageWhere = { isActive: true, id: { in: stageRows.map((r) => r.stageId) } }
+    } else {
+      stageWhere = { isActive: true }
+    }
+    candidateWhere = { status: 'active', jobId: { in: jobIds } }
   }
 
   const stages = await prisma.interviewStage.findMany({
