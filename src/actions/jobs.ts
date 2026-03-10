@@ -109,6 +109,11 @@ export async function getJobs(status?: 'open' | 'closed') {
     include: {
       createdBy: { select: { fullName: true } },
       _count: { select: { jobCandidates: true } },
+      jobCandidates: {
+        where: { status: 'hired' },
+        select: { id: true },
+        take: 1,
+      },
     },
     orderBy: { createdAt: 'desc' },
   })
