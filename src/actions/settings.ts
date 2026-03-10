@@ -14,6 +14,7 @@ import {
   approveUserSchema,
   updateUserStatusSchema,
   createUserSchema,
+  changePasswordSchema,
 } from '@/lib/validations/settings'
 
 type ActionResult = { success: boolean; error?: string }
@@ -263,6 +264,29 @@ export async function createUser(data: unknown): Promise<ActionResult> {
   })
 
   revalidatePath('/settings/users')
+  return { success: true }
+}
+
+export async function changePassword(_prevState: ActionResult, formData: FormData): Promise<ActionResult> {
+  const user = await getCurrentUser()
+  if (!user) return { success: false, error: 'Not authenticated' }
+
+  const parsed = changePasswordSchema.safeParse({
+    currentPassword: formData.get('currentPassword'),
+    newPassword: formData.get('newPassword'),
+    confirmPassword: formData.get('confirmPassword'),
+  })
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' }
+
+  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { passwordHash: true } })
+  if (!dbUser) return { success: false, error: 'User not found' }
+
+  const match = await bcrypt.compare(parsed.data.currentPassword, dbUser.passwordHash)
+  if (!match) return { success: false, error: 'Current password is incorrect' }
+
+  const passwordHash = await bcrypt.hash(parsed.data.newPassword, 12)
+  await prisma.user.update({ where: { id: user.id }, data: { passwordHash } })
+
   return { success: true }
 }
 

@@ -10,6 +10,7 @@ import {
   Users,
   Palette,
   LogOut,
+  UserCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { logout } from '@/actions/auth'
@@ -159,6 +160,21 @@ export function Sidebar({ user }: SidebarProps) {
             </p>
           </div>
         </div>
+
+        {/* My Account */}
+        <Link
+          href="/settings/account"
+          className={cn(
+            'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-all duration-150',
+            pathname === '/settings/account'
+              ? 'text-white bg-white/10'
+              : 'text-white/50 hover:text-white/90 hover:bg-white/5',
+          )}
+          style={{ fontFamily: 'var(--font-body)' }}
+        >
+          <UserCircle className="h-4 w-4 shrink-0" />
+          <span>My Account</span>
+        </Link>
 
         {/* Logout */}
         <form action={logout}>
