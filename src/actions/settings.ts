@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
+import bcrypt from 'bcryptjs'
 import {
   createStageSchema,
   updateStageSchema,
@@ -12,6 +13,7 @@ import {
   updateAppSettingsSchema,
   approveUserSchema,
   updateUserStatusSchema,
+  createUserSchema,
 } from '@/lib/validations/settings'
 
 type ActionResult = { success: boolean; error?: string }
@@ -236,6 +238,28 @@ export async function updateUserStatus(data: unknown): Promise<ActionResult> {
   await prisma.user.update({
     where: { id: parsed.data.userId },
     data: { status: parsed.data.status },
+  })
+
+  revalidatePath('/settings/users')
+  return { success: true }
+}
+
+export async function createUser(data: unknown): Promise<ActionResult> {
+  const err = await requireAdmin()
+  if (err) return err
+
+  const parsed = createUserSchema.safeParse(data)
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' }
+
+  const { fullName, email, password, role } = parsed.data
+
+  const existing = await prisma.user.findUnique({ where: { email } })
+  if (existing) return { success: false, error: 'A user with this email already exists' }
+
+  const passwordHash = await bcrypt.hash(password, 12)
+
+  await prisma.user.create({
+    data: { fullName, email, passwordHash, role, status: 'active' },
   })
 
   revalidatePath('/settings/users')

@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/shared/page-header'
 import { getCurrentUser } from '@/lib/auth'
 import { getAllUsers } from '@/actions/settings'
 import { UserRow } from '@/components/settings/user-row'
+import { CreateUserDialog } from '@/components/settings/create-user-dialog'
 
 export const metadata: Metadata = {
   title: 'User Management — Rekru',
@@ -24,6 +25,7 @@ export default async function UsersPage() {
       <PageHeader
         title="User Management"
         description="Approve new users and manage access"
+        action={<CreateUserDialog />}
       />
 
       {/* Pending approvals */}
