@@ -11,6 +11,7 @@ import {
   Palette,
   LogOut,
   UserCircle,
+  BarChart2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { logout } from '@/actions/auth'
@@ -30,6 +31,10 @@ const mainNav: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Jobs', href: '/jobs', icon: Briefcase },
   { label: 'Interviews', href: '/interviews', icon: ClipboardList },
+]
+
+const adminNav: NavItem[] = [
+  { label: 'Analytics', href: '/analytics', icon: BarChart2 },
 ]
 
 const settingsNav: NavItem[] = [
@@ -103,6 +108,21 @@ export function Sidebar({ user }: SidebarProps) {
             isActive={pathname === item.href || pathname.startsWith(item.href + '/')}
           />
         ))}
+
+        {/* Admin-only nav items */}
+        {isAdmin && (
+          <div className="pt-3">
+            <div className="space-y-1">
+              {adminNav.map((item) => (
+                <NavLink
+                  key={item.href}
+                  item={item}
+                  isActive={pathname === item.href || pathname.startsWith(item.href + '/')}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Settings section — admin only */}
         {isAdmin && (

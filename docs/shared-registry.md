@@ -62,6 +62,14 @@
 
 ---
 
+## Analytics Actions
+
+| Name | File Path | Purpose | Created By |
+|------|-----------|---------|------------|
+| `getPipelineAnalytics(jobId?)` | `src/actions/analytics.ts` | Returns funnel stats, job performance, rejection drivers, and summary counts — optionally scoped to a single job. Admin-gated at page level. | Nabil |
+
+---
+
 ## Mappings / Config Objects
 
 | Name | File Path | Purpose | Created By |
