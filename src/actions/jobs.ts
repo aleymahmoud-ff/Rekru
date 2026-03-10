@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
-import { createJobSchema, linkJobQuestionsSchema } from '@/lib/validations/job'
+import { createJobSchema, updateJobSchema, linkJobQuestionsSchema } from '@/lib/validations/job'
 
 type ActionResult = { success: boolean; error?: string; id?: string }
 
@@ -31,6 +31,33 @@ export async function createJob(_prevState: ActionResult, formData: FormData): P
 
   revalidatePath('/jobs')
   return { success: true, id: job.id }
+}
+
+export async function updateJob(data: unknown): Promise<ActionResult> {
+  const user = await getCurrentUser()
+  if (!user) return { success: false, error: 'Not authenticated' }
+
+  const parsed = updateJobSchema.safeParse(data)
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' }
+
+  const { id, ...updates } = parsed.data
+  await prisma.job.update({ where: { id }, data: updates })
+
+  revalidatePath('/jobs')
+  revalidatePath(`/jobs/${id}`)
+  return { success: true, id }
+}
+
+export async function deleteJob(jobId: string): Promise<ActionResult> {
+  const user = await getCurrentUser()
+  if (!user) return { success: false, error: 'Not authenticated' }
+
+  const count = await prisma.jobCandidate.count({ where: { jobId } })
+  if (count > 0) return { success: false, error: `Cannot delete: ${count} candidate${count !== 1 ? 's' : ''} are linked to this job` }
+
+  await prisma.job.delete({ where: { id: jobId } })
+  revalidatePath('/jobs')
+  return { success: true }
 }
 
 export async function linkJobQuestions(data: unknown): Promise<ActionResult> {

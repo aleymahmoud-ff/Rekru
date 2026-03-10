@@ -5,6 +5,8 @@ import { getJobs } from '@/actions/jobs'
 import { getJobSpecificQuestions } from '@/actions/settings'
 import { Briefcase, ChevronRight } from 'lucide-react'
 import { CreateJobDialog } from '@/components/jobs/create-job-dialog'
+import { EditJobDialog } from '@/components/jobs/edit-job-dialog'
+import { DeleteJobButton } from '@/components/jobs/delete-job-button'
 
 export const metadata: Metadata = {
   title: 'Jobs — Rekru',
@@ -48,43 +50,56 @@ export default async function JobsPage() {
       ) : (
         <div className="grid gap-3">
           {jobs.map((job) => (
-            <Link
+            <div
               key={job.id}
-              href={`/jobs/${job.id}`}
-              className="group flex items-center justify-between rounded-xl border bg-white px-5 py-4 transition-all duration-200 hover:shadow-md"
+              className="flex items-center rounded-xl border bg-white transition-all duration-200 hover:shadow-md"
               style={{ borderColor: '#e8e5e0' }}
             >
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-3 mb-1">
+              <Link
+                href={`/jobs/${job.id}`}
+                className="group flex items-center justify-between flex-1 min-w-0 px-5 py-4"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-3 mb-1">
+                    <p
+                      className="text-base font-semibold truncate"
+                      style={{ fontFamily: 'var(--font-body)', color: '#1a1a1a' }}
+                    >
+                      {job.title}
+                    </p>
+                    <span
+                      className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border shrink-0"
+                      style={
+                        job.status === 'open'
+                          ? { color: '#059669', backgroundColor: '#ecfdf5', borderColor: '#a7f3d0' }
+                          : { color: '#6b7280', backgroundColor: '#f9fafb', borderColor: '#e5e7eb' }
+                      }
+                    >
+                      {job.status === 'open' ? 'Open' : 'Closed'}
+                    </span>
+                  </div>
                   <p
-                    className="text-base font-semibold truncate"
-                    style={{ fontFamily: 'var(--font-body)', color: '#1a1a1a' }}
+                    className="text-xs"
+                    style={{ fontFamily: 'var(--font-body)', color: '#9c9690' }}
                   >
-                    {job.title}
+                    {job._count.jobCandidates} candidate{job._count.jobCandidates !== 1 ? 's' : ''} · Created by {job.createdBy.fullName} · {new Date(job.createdAt).toLocaleDateString()}
                   </p>
-                  <span
-                    className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border shrink-0"
-                    style={
-                      job.status === 'open'
-                        ? { color: '#059669', backgroundColor: '#ecfdf5', borderColor: '#a7f3d0' }
-                        : { color: '#6b7280', backgroundColor: '#f9fafb', borderColor: '#e5e7eb' }
-                    }
-                  >
-                    {job.status === 'open' ? 'Open' : 'Closed'}
-                  </span>
                 </div>
-                <p
-                  className="text-xs"
-                  style={{ fontFamily: 'var(--font-body)', color: '#9c9690' }}
-                >
-                  {job._count.jobCandidates} candidate{job._count.jobCandidates !== 1 ? 's' : ''} · Created by {job.createdBy.fullName} · {new Date(job.createdAt).toLocaleDateString()}
-                </p>
+                <ChevronRight
+                  className="h-5 w-5 shrink-0 transition-transform group-hover:translate-x-0.5 ml-4"
+                  style={{ color: '#9c9690' }}
+                />
+              </Link>
+              <div className="flex items-center gap-1 pr-3 shrink-0">
+                <EditJobDialog job={job} variant="icon" />
+                <DeleteJobButton
+                  jobId={job.id}
+                  jobTitle={job.title}
+                  candidateCount={job._count.jobCandidates}
+                  variant="icon"
+                />
               </div>
-              <ChevronRight
-                className="h-5 w-5 shrink-0 transition-transform group-hover:translate-x-0.5"
-                style={{ color: '#9c9690' }}
-              />
-            </Link>
+            </div>
           ))}
         </div>
       )}

@@ -5,6 +5,8 @@ import { PageHeader } from '@/components/shared/page-header'
 import { getJobWithCandidates } from '@/actions/jobs'
 import { Plus, Pencil } from 'lucide-react'
 import { JobStatusToggle } from '@/components/jobs/job-status-toggle'
+import { EditJobDialog } from '@/components/jobs/edit-job-dialog'
+import { DeleteJobButton } from '@/components/jobs/delete-job-button'
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -40,6 +42,13 @@ export default async function JobDetailPage({ params }: Props) {
         description={job.description || `Created by ${job.createdBy.fullName} · ${new Date(job.createdAt).toLocaleDateString()}`}
         action={
           <div className="flex items-center gap-3">
+            <EditJobDialog job={job} variant="button" />
+            <DeleteJobButton
+              jobId={job.id}
+              jobTitle={job.title}
+              candidateCount={job.jobCandidates.length}
+              variant="button"
+            />
             <JobStatusToggle jobId={job.id} currentStatus={job.status} />
             {job.status === 'open' && (
               <Link
