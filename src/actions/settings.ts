@@ -66,11 +66,24 @@ export async function deleteStage(stageId: string): Promise<ActionResult> {
   return { success: true }
 }
 
+export async function reorderStages(orderedIds: string[]): Promise<ActionResult> {
+  const err = await requireAdmin()
+  if (err) return err
+
+  await prisma.$transaction(
+    orderedIds.map((id, index) =>
+      prisma.interviewStage.update({ where: { id }, data: { sortOrder: index + 1 } })
+    )
+  )
+  revalidatePath('/settings/stages')
+  return { success: true }
+}
+
 export async function getStages() {
   return prisma.interviewStage.findMany({
     orderBy: { sortOrder: 'asc' },
     include: {
-      _count: { select: { questions: true, jobCandidates: true } },
+      _count: { select: { questions: true, jobCandidates: true, interviews: true } },
     },
   })
 }

@@ -8,7 +8,7 @@ type Stage = {
   id: string
   name: string
   isActive: boolean
-  _count: { jobCandidates: number }
+  _count: { jobCandidates: number; interviews: number }
 }
 
 export function StageActions({ stage }: { stage: Stage }) {
@@ -30,7 +30,7 @@ export function StageActions({ stage }: { stage: Stage }) {
           <EyeOff className="h-3.5 w-3.5" style={{ color: '#9c9690' }} />
         )}
       </button>
-      {stage._count.jobCandidates === 0 && (
+      {stage._count.jobCandidates === 0 && stage._count.interviews === 0 && (
         <button
           disabled={isPending}
           onClick={() => {
