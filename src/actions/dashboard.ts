@@ -1,23 +1,50 @@
 'use server'
 
 import { prisma } from '@/lib/db'
+import { getCurrentUser } from '@/lib/auth'
 
 export async function getDashboardStats() {
+  const user = await getCurrentUser()
+  if (!user) return {
+    statusCounts: { active: 0, hired: 0, rejected: 0, on_hold: 0 },
+    stageCounts: [],
+    recentInterviews: [],
+    totalOpenJobs: 0,
+    totalCandidates: 0,
+  }
+
+  // For non-admin: filter everything to assigned jobs and stages
+  let jobIdFilter: string[] | null = null
+  let stageIdFilter: string[] | null = null
+
+  if (user.role !== 'admin') {
+    const [jobRows, stageRows] = await Promise.all([
+      prisma.jobAssignment.findMany({ where: { userId: user.id }, select: { jobId: true } }),
+      prisma.userStageAccess.findMany({ where: { userId: user.id }, select: { stageId: true } }),
+    ])
+    jobIdFilter = jobRows.map((r) => r.jobId)
+    stageIdFilter = stageRows.map((r) => r.stageId)
+  }
+
+  const candidateJobFilter = jobIdFilter ? { jobId: { in: jobIdFilter } } : {}
+  const stageWhere = {
+    isActive: true,
+    ...(stageIdFilter ? { id: { in: stageIdFilter } } : {}),
+  }
+
   const [statusCounts, onHoldCount, stageCounts, recentInterviews, totalJobs] = await Promise.all([
-    // Count by pipeline status
     prisma.jobCandidate.groupBy({
       by: ['status'],
       _count: { id: true },
+      where: candidateJobFilter,
     }),
 
-    // Count candidates with on_hold interviews (still active but waiting)
     prisma.interview.count({
-      where: { outcome: 'on_hold' },
+      where: { outcome: 'on_hold', ...(jobIdFilter ? { jobCandidate: { jobId: { in: jobIdFilter } } } : {}) },
     }),
 
-    // Count active candidates per stage
     prisma.interviewStage.findMany({
-      where: { isActive: true },
+      where: stageWhere,
       orderBy: { sortOrder: 'asc' },
       select: {
         id: true,
@@ -25,18 +52,16 @@ export async function getDashboardStats() {
         sortOrder: true,
         _count: {
           select: {
-            jobCandidates: {
-              where: { status: 'active' },
-            },
+            jobCandidates: { where: { status: 'active', ...candidateJobFilter } },
           },
         },
       },
     }),
 
-    // Recent interviews
     prisma.interview.findMany({
       take: 10,
       orderBy: { conductedAt: 'desc' },
+      where: jobIdFilter ? { jobCandidate: { jobId: { in: jobIdFilter } } } : {},
       include: {
         jobCandidate: {
           include: {
@@ -50,8 +75,12 @@ export async function getDashboardStats() {
       },
     }),
 
-    // Total open jobs
-    prisma.job.count({ where: { status: 'open' } }),
+    prisma.job.count({
+      where: {
+        status: 'open',
+        ...(jobIdFilter ? { id: { in: jobIdFilter } } : {}),
+      },
+    }),
   ])
 
   const statusMap: Record<string, number> = {
@@ -62,13 +91,11 @@ export async function getDashboardStats() {
   }
   for (const s of statusCounts) {
     if (s.status === 'active') {
-      // Active minus on-hold (they're technically active but paused)
       statusMap.active = s._count.id - onHoldCount
     } else {
       statusMap[s.status] = s._count.id
     }
   }
-  // Ensure active doesn't go negative
   if (statusMap.active < 0) statusMap.active = 0
 
   return {

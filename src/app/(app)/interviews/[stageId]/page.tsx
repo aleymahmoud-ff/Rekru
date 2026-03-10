@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { PageHeader } from '@/components/shared/page-header'
 import { getCandidatesForStage } from '@/actions/interviews'
 import { prisma } from '@/lib/db'
+import { getCurrentUser } from '@/lib/auth'
 import { ChevronRight } from 'lucide-react'
 
 type Props = { params: Promise<{ stageId: string }> }
@@ -16,12 +17,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function StageCandidatesPage({ params }: Props) {
   const { stageId } = await params
-  const stage = await prisma.interviewStage.findUnique({
-    where: { id: stageId },
-    select: { id: true, name: true },
-  })
+  const [stage, user] = await Promise.all([
+    prisma.interviewStage.findUnique({ where: { id: stageId }, select: { id: true, name: true } }),
+    getCurrentUser(),
+  ])
 
   if (!stage) notFound()
+
+  // Non-admin must have stage access
+  if (user && user.role !== 'admin') {
+    const access = await prisma.userStageAccess.findUnique({
+      where: { userId_stageId: { userId: user.id, stageId } },
+    })
+    if (!access) notFound()
+  }
 
   const candidates = await getCandidatesForStage(stageId)
 

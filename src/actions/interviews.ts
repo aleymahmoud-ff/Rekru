@@ -146,11 +146,20 @@ async function handleOutcomeChange(stageId: string, jobCandidateId: string, outc
 }
 
 export async function getCandidatesForStage(stageId: string) {
+  const user = await getCurrentUser()
+  if (!user) return []
+
+  const jobFilter: Record<string, unknown> = {}
+  if (user.role !== 'admin') {
+    const assigned = await prisma.jobAssignment.findMany({
+      where: { userId: user.id },
+      select: { jobId: true },
+    })
+    jobFilter.jobId = { in: assigned.map((a) => a.jobId) }
+  }
+
   return prisma.jobCandidate.findMany({
-    where: {
-      currentStageId: stageId,
-      status: 'active',
-    },
+    where: { currentStageId: stageId, status: 'active', ...jobFilter },
     include: {
       candidate: true,
       job: { select: { title: true } },
@@ -189,16 +198,27 @@ export async function getInterviewFormData(stageId: string, jobId: string) {
 }
 
 export async function getStagesWithCounts() {
+  const user = await getCurrentUser()
+  if (!user) return []
+
+  let stageWhere: Record<string, unknown> = { isActive: true }
+  let candidateWhere: Record<string, unknown> = { status: 'active' }
+
+  if (user.role !== 'admin') {
+    const [stageRows, jobRows] = await Promise.all([
+      prisma.userStageAccess.findMany({ where: { userId: user.id }, select: { stageId: true } }),
+      prisma.jobAssignment.findMany({ where: { userId: user.id }, select: { jobId: true } }),
+    ])
+    stageWhere = { isActive: true, id: { in: stageRows.map((r) => r.stageId) } }
+    candidateWhere = { status: 'active', jobId: { in: jobRows.map((r) => r.jobId) } }
+  }
+
   const stages = await prisma.interviewStage.findMany({
-    where: { isActive: true },
+    where: stageWhere,
     orderBy: { sortOrder: 'asc' },
     include: {
       _count: {
-        select: {
-          jobCandidates: {
-            where: { status: 'active' },
-          },
-        },
+        select: { jobCandidates: { where: candidateWhere } },
       },
     },
   })

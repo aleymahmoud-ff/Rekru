@@ -15,6 +15,7 @@ import {
   updateUserStatusSchema,
   createUserSchema,
   changePasswordSchema,
+  setUserAccessSchema,
 } from '@/lib/validations/settings'
 
 type ActionResult = { success: boolean; error?: string }
@@ -287,6 +288,49 @@ export async function changePassword(_prevState: ActionResult, formData: FormDat
   const passwordHash = await bcrypt.hash(parsed.data.newPassword, 12)
   await prisma.user.update({ where: { id: user.id }, data: { passwordHash } })
 
+  return { success: true }
+}
+
+export async function getActiveStagesBasic() {
+  return prisma.interviewStage.findMany({
+    where: { isActive: true },
+    orderBy: { sortOrder: 'asc' },
+    select: { id: true, name: true },
+  })
+}
+
+export async function getUserAccess(userId: string) {
+  const [stageRows, jobRows] = await Promise.all([
+    prisma.userStageAccess.findMany({ where: { userId }, select: { stageId: true } }),
+    prisma.jobAssignment.findMany({ where: { userId }, select: { jobId: true } }),
+  ])
+  return {
+    stageIds: stageRows.map((r) => r.stageId),
+    jobIds: jobRows.map((r) => r.jobId),
+  }
+}
+
+export async function setUserAccess(data: unknown): Promise<ActionResult> {
+  const err = await requireAdmin()
+  if (err) return err
+
+  const parsed = setUserAccessSchema.safeParse(data)
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' }
+
+  const { userId, stageIds, jobIds } = parsed.data
+
+  await prisma.$transaction([
+    prisma.userStageAccess.deleteMany({ where: { userId } }),
+    prisma.jobAssignment.deleteMany({ where: { userId } }),
+    ...(stageIds.length > 0
+      ? [prisma.userStageAccess.createMany({ data: stageIds.map((stageId) => ({ userId, stageId })), skipDuplicates: true })]
+      : []),
+    ...(jobIds.length > 0
+      ? [prisma.jobAssignment.createMany({ data: jobIds.map((jobId) => ({ userId, jobId })), skipDuplicates: true })]
+      : []),
+  ])
+
+  revalidatePath('/settings/users')
   return { success: true }
 }
 

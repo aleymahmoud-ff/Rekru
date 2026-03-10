@@ -2,7 +2,8 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { PageHeader } from '@/components/shared/page-header'
 import { getCurrentUser } from '@/lib/auth'
-import { getAllUsers } from '@/actions/settings'
+import { getAllUsers, getActiveStagesBasic } from '@/actions/settings'
+import { getJobs } from '@/actions/jobs'
 import { UserRow } from '@/components/settings/user-row'
 import { CreateUserDialog } from '@/components/settings/create-user-dialog'
 
@@ -14,7 +15,11 @@ export default async function UsersPage() {
   const user = await getCurrentUser()
   if (!user || user.role !== 'admin') redirect('/dashboard')
 
-  const users = await getAllUsers()
+  const [users, allStages, allJobs] = await Promise.all([
+    getAllUsers(),
+    getActiveStagesBasic(),
+    getJobs('open'),
+  ])
 
   const pending = users.filter((u) => u.status === 'pending')
   const active = users.filter((u) => u.status === 'active')
@@ -42,7 +47,7 @@ export default async function UsersPage() {
             style={{ backgroundColor: '#fffbeb', borderColor: '#fde68a' }}
           >
             {pending.map((u) => (
-              <UserRow key={u.id} userData={u} currentUserId={user.id} />
+              <UserRow key={u.id} userData={u} currentUserId={user.id} allStages={allStages} allJobs={allJobs.map((j) => ({ id: j.id, title: j.title }))} />
             ))}
           </div>
         </div>
@@ -61,7 +66,7 @@ export default async function UsersPage() {
           style={{ backgroundColor: '#ffffff', borderColor: '#e8e5e0' }}
         >
           {active.map((u) => (
-            <UserRow key={u.id} userData={u} currentUserId={user.id} />
+            <UserRow key={u.id} userData={u} currentUserId={user.id} allStages={allStages} allJobs={allJobs.map((j) => ({ id: j.id, title: j.title }))} />
           ))}
         </div>
       </div>
@@ -80,7 +85,7 @@ export default async function UsersPage() {
             style={{ backgroundColor: '#ffffff', borderColor: '#e8e5e0', opacity: 0.6 }}
           >
             {inactive.map((u) => (
-              <UserRow key={u.id} userData={u} currentUserId={user.id} />
+              <UserRow key={u.id} userData={u} currentUserId={user.id} allStages={allStages} allJobs={allJobs.map((j) => ({ id: j.id, title: j.title }))} />
             ))}
           </div>
         </div>

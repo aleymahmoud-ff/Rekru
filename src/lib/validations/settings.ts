@@ -57,6 +57,12 @@ export const createUserSchema = z.object({
   role: z.enum(['admin', 'user']),
 })
 
+export const setUserAccessSchema = z.object({
+  userId: z.string().min(1),
+  stageIds: z.array(z.string()),
+  jobIds: z.array(z.string()),
+})
+
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Current password is required'),
   newPassword: z.string().min(8, 'New password must be at least 8 characters'),

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { PageHeader } from '@/components/shared/page-header'
 import { getInterviewFormData, getExistingInterview } from '@/actions/interviews'
 import { prisma } from '@/lib/db'
+import { getCurrentUser } from '@/lib/auth'
 import { InterviewForm } from '@/components/interviews/interview-form'
 
 type Props = { params: Promise<{ stageId: string; jobCandidateId: string }> }
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
 export default async function ConductInterviewPage({ params }: Props) {
   const { stageId, jobCandidateId } = await params
 
-  const [jobCandidate, existingInterview] = await Promise.all([
+  const [jobCandidate, existingInterview, user] = await Promise.all([
     prisma.jobCandidate.findUnique({
       where: { id: jobCandidateId },
       include: {
@@ -23,9 +24,18 @@ export default async function ConductInterviewPage({ params }: Props) {
       },
     }),
     getExistingInterview(jobCandidateId, stageId),
+    getCurrentUser(),
   ])
 
   if (!jobCandidate) notFound()
+
+  // Non-admin must have stage access to conduct interviews
+  if (user && user.role !== 'admin') {
+    const access = await prisma.userStageAccess.findUnique({
+      where: { userId_stageId: { userId: user.id, stageId } },
+    })
+    if (!access) notFound()
+  }
   const stage = await getInterviewFormData(stageId, jobCandidate.jobId)
 
   if (!stage) notFound()

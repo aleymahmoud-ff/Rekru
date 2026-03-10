@@ -77,6 +77,8 @@ model User {
   jobs             Job[]
   interviews       Interview[]
   interviewEdits   Interview[] @relation("interviewEdits")
+  stageAccess      UserStageAccess[]
+  jobAssignments   JobAssignment[]
 
   @@map("users")
 }
@@ -93,6 +95,7 @@ model Job {
   createdBy      User           @relation(fields: [createdById], references: [id])
   jobCandidates  JobCandidate[]
   jobQuestions   JobQuestion[]
+  assignments    JobAssignment[]
 
   @@index([status], name: "jobs_status_idx")
   @@index([createdById])
@@ -147,6 +150,7 @@ model InterviewStage {
   questions     StageQuestion[]
   jobCandidates JobCandidate[]
   interviews    Interview[]
+  userAccess    UserStageAccess[]
 
   @@index([isActive, sortOrder], name: "interview_stages_order_idx")
   @@map("interview_stages")
@@ -238,6 +242,30 @@ model JobQuestion {
   @@unique([jobId, questionId])
   @@index([jobId], name: "job_questions_job_idx")
   @@map("job_questions")
+}
+
+model UserStageAccess {
+  id      String @id @default(uuid())
+  userId  String @map("user_id")
+  stageId String @map("stage_id")
+
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stage InterviewStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, stageId])
+  @@map("user_stage_access")
+}
+
+model JobAssignment {
+  id     String @id @default(uuid())
+  userId String @map("user_id")
+  jobId  String @map("job_id")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job  Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, jobId])
+  @@map("job_assignments")
 }
 
 model AppSettings {

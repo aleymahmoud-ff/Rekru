@@ -102,7 +102,13 @@ export async function toggleJobStatus(jobId: string): Promise<ActionResult> {
 }
 
 export async function getJobs(status?: 'open' | 'closed') {
-  const where = status ? { status: status as 'open' | 'closed' } : {}
+  const user = await getCurrentUser()
+  if (!user) return []
+
+  const where: Record<string, unknown> = status ? { status } : {}
+  if (user.role !== 'admin') {
+    where.assignments = { some: { userId: user.id } }
+  }
 
   return prisma.job.findMany({
     where,
@@ -120,6 +126,16 @@ export async function getJobs(status?: 'open' | 'closed') {
 }
 
 export async function getJobWithCandidates(jobId: string) {
+  const user = await getCurrentUser()
+  if (!user) return null
+
+  if (user.role !== 'admin') {
+    const assigned = await prisma.jobAssignment.findUnique({
+      where: { userId_jobId: { userId: user.id, jobId } },
+    })
+    if (!assigned) return null
+  }
+
   return prisma.job.findUnique({
     where: { id: jobId },
     include: {
