@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { getUserAccess, setUserAccess } from '@/actions/settings'
-import { Shield } from 'lucide-react'
+import { getJobAssignedUsers, setJobAssignments } from '@/actions/settings'
+import { Users } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -10,17 +10,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 
-type Stage = { id: string; name: string }
+type User = { id: string; fullName: string; email: string }
 
 type Props = {
-  userId: string
-  userName: string
-  allStages: Stage[]
+  jobId: string
+  jobTitle: string
+  allUsers: User[]
 }
 
-export function UserAccessDialog({ userId, userName, allStages }: Props) {
+export function ManageTeamDialog({ jobId, jobTitle, allUsers }: Props) {
   const [open, setOpen] = useState(false)
-  const [stageIds, setStageIds] = useState<Set<string>>(new Set())
+  const [userIds, setUserIds] = useState<Set<string>>(new Set())
   const [loaded, setLoaded] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -29,15 +29,15 @@ export function UserAccessDialog({ userId, userName, allStages }: Props) {
     setOpen(true)
     if (!loaded) {
       startTransition(async () => {
-        const access = await getUserAccess(userId)
-        setStageIds(new Set(access.stageIds))
+        const users = await getJobAssignedUsers(jobId)
+        setUserIds(new Set(users.map((u) => u.id)))
         setLoaded(true)
       })
     }
   }
 
-  function toggleStage(id: string) {
-    setStageIds((prev) => {
+  function toggleUser(id: string) {
+    setUserIds((prev) => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
       else next.add(id)
@@ -48,7 +48,7 @@ export function UserAccessDialog({ userId, userName, allStages }: Props) {
   function handleSave() {
     setError(null)
     startTransition(async () => {
-      const result = await setUserAccess({ userId, stageIds: Array.from(stageIds) })
+      const result = await setJobAssignments({ jobId, userIds: Array.from(userIds) })
       if (result.success) setOpen(false)
       else setError(result.error ?? 'Failed to save')
     })
@@ -58,18 +58,18 @@ export function UserAccessDialog({ userId, userName, allStages }: Props) {
     <>
       <button
         onClick={handleOpen}
-        className="rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-[#f0eeeb]"
-        style={{ fontFamily: 'var(--font-body)', borderColor: '#e8e5e0', color: '#1e3a5f' }}
+        className="inline-flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-[#faf9f7]"
+        style={{ fontFamily: 'var(--font-body)', borderColor: '#e8e5e0', color: '#6b6560' }}
       >
-        <Shield className="h-3 w-3 inline mr-1" />
-        Stages
+        <Users className="h-4 w-4" />
+        Team
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle style={{ fontFamily: 'var(--font-display)' }}>
-              Stage Access: {userName}
+              Assign Team: {jobTitle}
             </DialogTitle>
           </DialogHeader>
 
@@ -80,29 +80,34 @@ export function UserAccessDialog({ userId, userName, allStages }: Props) {
           ) : (
             <div className="space-y-4 mt-2">
               <p className="text-xs" style={{ fontFamily: 'var(--font-body)', color: '#6b6560' }}>
-                Select which interview stages this user can conduct interviews at.
+                Select users who can see and work on this job.
               </p>
 
-              {allStages.length === 0 ? (
-                <p className="text-sm" style={{ color: '#9c9690' }}>No active stages</p>
+              {allUsers.length === 0 ? (
+                <p className="text-sm" style={{ color: '#9c9690' }}>No users available</p>
               ) : (
-                <div className="space-y-1.5">
-                  {allStages.map((stage) => (
+                <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                  {allUsers.map((u) => (
                     <label
-                      key={stage.id}
+                      key={u.id}
                       className="flex items-center gap-3 rounded-lg border px-3 py-2.5 cursor-pointer hover:bg-[#faf9f7] transition-colors"
                       style={{ borderColor: '#e8e5e0' }}
                     >
                       <input
                         type="checkbox"
-                        checked={stageIds.has(stage.id)}
-                        onChange={() => toggleStage(stage.id)}
+                        checked={userIds.has(u.id)}
+                        onChange={() => toggleUser(u.id)}
                         className="h-4 w-4 rounded"
                         style={{ accentColor: '#1e3a5f' }}
                       />
-                      <span className="text-sm" style={{ fontFamily: 'var(--font-body)', color: '#1a1a1a' }}>
-                        {stage.name}
-                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm" style={{ fontFamily: 'var(--font-body)', color: '#1a1a1a' }}>
+                          {u.fullName}
+                        </p>
+                        <p className="text-xs" style={{ fontFamily: 'var(--font-body)', color: '#9c9690' }}>
+                          {u.email}
+                        </p>
+                      </div>
                     </label>
                   ))}
                 </div>
@@ -118,7 +123,7 @@ export function UserAccessDialog({ userId, userName, allStages }: Props) {
                 className="w-full rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50"
                 style={{ backgroundColor: '#1e3a5f', fontFamily: 'var(--font-body)' }}
               >
-                {isPending ? 'Saving...' : 'Save Stage Access'}
+                {isPending ? 'Saving...' : 'Save Team'}
               </button>
             </div>
           )}

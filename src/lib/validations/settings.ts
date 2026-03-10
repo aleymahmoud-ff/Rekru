@@ -60,7 +60,11 @@ export const createUserSchema = z.object({
 export const setUserAccessSchema = z.object({
   userId: z.string().min(1),
   stageIds: z.array(z.string()),
-  jobIds: z.array(z.string()),
+})
+
+export const setJobAssignmentsSchema = z.object({
+  jobId: z.string().min(1),
+  userIds: z.array(z.string()),
 })
 
 export const changePasswordSchema = z.object({

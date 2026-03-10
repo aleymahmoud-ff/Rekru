@@ -40,7 +40,24 @@
       "Bash(npx prisma migrate dev --name init)",
       "Bash(npx tsx prisma/seed.ts)",
       "Bash(node -e \":*)",
-      "Bash(node -e \"const { PrismaClient } = require\\(''@prisma/client''\\); const p = new PrismaClient\\(\\); p.user.findFirst\\(\\).then\\(u => { console.log\\(''DB OK, user:'', u && u.email\\); p[''$disconnect'']\\(\\); }\\).catch\\(e => { console.error\\(''DB error:'', e.message\\); p[''$disconnect'']\\(\\); }\\);\")"
+      "Bash(node -e \"const { PrismaClient } = require\\(''@prisma/client''\\); const p = new PrismaClient\\(\\); p.user.findFirst\\(\\).then\\(u => { console.log\\(''DB OK, user:'', u && u.email\\); p[''$disconnect'']\\(\\); }\\).catch\\(e => { console.error\\(''DB error:'', e.message\\); p[''$disconnect'']\\(\\); }\\);\")",
+      "Bash(npx prisma migrate dev --name add-interview-edit-tracking)",
+      "Bash(ls \"d:/Apps/Wander/Recruitment Cycle/src/app/\\(app\\)/interviews/\")",
+      "Bash(npm install:*)",
+      "Bash(npx prisma:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npm run:*)",
+      "Skill(commit-commands:commit-push-pr)",
+      "Skill(commit-commands:commit-push-pr:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(gh pr:*)",
+      "Bash(git merge:*)",
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)",
+      "Bash(git commit:*)"
     ]
   }
 }

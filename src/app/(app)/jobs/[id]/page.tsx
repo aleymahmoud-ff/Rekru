@@ -9,6 +9,9 @@ import { EditJobDialog } from '@/components/jobs/edit-job-dialog'
 import { DeleteJobButton } from '@/components/jobs/delete-job-button'
 import { RemoveCandidateButton } from '@/components/jobs/remove-candidate-button'
 import { JobPerformancePanel } from '@/components/jobs/job-performance-panel'
+import { ManageTeamDialog } from '@/components/jobs/manage-team-dialog'
+import { getAllUsers } from '@/actions/settings'
+import { getCurrentUser } from '@/lib/auth'
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -33,9 +36,15 @@ const OUTCOME_STYLES: Record<string, { label: string; color: string; bg: string;
 
 export default async function JobDetailPage({ params }: Props) {
   const { id } = await params
-  const job = await getJobWithCandidates(id)
+  const [job, currentUser, allUsers] = await Promise.all([
+    getJobWithCandidates(id),
+    getCurrentUser(),
+    getAllUsers(),
+  ])
 
   if (!job) notFound()
+
+  const assignableUsers = allUsers.filter((u) => u.role !== 'admin' && u.status === 'active')
 
   return (
     <div>
@@ -44,6 +53,13 @@ export default async function JobDetailPage({ params }: Props) {
         description={job.description || `Created by ${job.createdBy.fullName} · ${new Date(job.createdAt).toLocaleDateString()}`}
         action={
           <div className="flex items-center gap-3">
+            {currentUser?.role === 'admin' && (
+              <ManageTeamDialog
+                jobId={job.id}
+                jobTitle={job.title}
+                allUsers={assignableUsers}
+              />
+            )}
             <EditJobDialog job={job} variant="button" />
             <DeleteJobButton
               jobId={job.id}

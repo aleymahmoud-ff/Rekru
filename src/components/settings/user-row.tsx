@@ -5,7 +5,6 @@ import { approveUser, updateUserStatus } from '@/actions/settings'
 import { UserAccessDialog } from '@/components/settings/user-access-dialog'
 
 type Stage = { id: string; name: string }
-type Job = { id: string; title: string }
 
 type UserData = {
   id: string
@@ -22,7 +21,7 @@ const STATUS_STYLES: Record<string, { color: string; bg: string; border: string 
   inactive: { color: '#6b7280', bg: '#f9fafb', border: '#e5e7eb' },
 }
 
-export function UserRow({ userData, currentUserId, allStages, allJobs }: { userData: UserData; currentUserId: string; allStages: Stage[]; allJobs: Job[] }) {
+export function UserRow({ userData, currentUserId, allStages }: { userData: UserData; currentUserId: string; allStages: Stage[] }) {
   const [isPending, startTransition] = useTransition()
   const isSelf = userData.id === currentUserId
   const st = STATUS_STYLES[userData.status] ?? STATUS_STYLES.active
@@ -62,7 +61,6 @@ export function UserRow({ userData, currentUserId, allStages, allJobs }: { userD
             userId={userData.id}
             userName={userData.fullName}
             allStages={allStages}
-            allJobs={allJobs}
           />
         )}
 

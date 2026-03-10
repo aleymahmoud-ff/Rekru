@@ -16,6 +16,7 @@ import {
   createUserSchema,
   changePasswordSchema,
   setUserAccessSchema,
+  setJobAssignmentsSchema,
 } from '@/lib/validations/settings'
 
 type ActionResult = { success: boolean; error?: string }
@@ -300,14 +301,8 @@ export async function getActiveStagesBasic() {
 }
 
 export async function getUserAccess(userId: string) {
-  const [stageRows, jobRows] = await Promise.all([
-    prisma.userStageAccess.findMany({ where: { userId }, select: { stageId: true } }),
-    prisma.jobAssignment.findMany({ where: { userId }, select: { jobId: true } }),
-  ])
-  return {
-    stageIds: stageRows.map((r) => r.stageId),
-    jobIds: jobRows.map((r) => r.jobId),
-  }
+  const stageRows = await prisma.userStageAccess.findMany({ where: { userId }, select: { stageId: true } })
+  return { stageIds: stageRows.map((r) => r.stageId) }
 }
 
 export async function setUserAccess(data: unknown): Promise<ActionResult> {
@@ -317,20 +312,44 @@ export async function setUserAccess(data: unknown): Promise<ActionResult> {
   const parsed = setUserAccessSchema.safeParse(data)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' }
 
-  const { userId, stageIds, jobIds } = parsed.data
+  const { userId, stageIds } = parsed.data
 
   await prisma.$transaction([
     prisma.userStageAccess.deleteMany({ where: { userId } }),
-    prisma.jobAssignment.deleteMany({ where: { userId } }),
     ...(stageIds.length > 0
       ? [prisma.userStageAccess.createMany({ data: stageIds.map((stageId) => ({ userId, stageId })), skipDuplicates: true })]
-      : []),
-    ...(jobIds.length > 0
-      ? [prisma.jobAssignment.createMany({ data: jobIds.map((jobId) => ({ userId, jobId })), skipDuplicates: true })]
       : []),
   ])
 
   revalidatePath('/settings/users')
+  return { success: true }
+}
+
+export async function getJobAssignedUsers(jobId: string) {
+  const rows = await prisma.jobAssignment.findMany({
+    where: { jobId },
+    include: { user: { select: { id: true, fullName: true, email: true } } },
+  })
+  return rows.map((r) => r.user)
+}
+
+export async function setJobAssignments(data: unknown): Promise<ActionResult> {
+  const err = await requireAdmin()
+  if (err) return err
+
+  const parsed = setJobAssignmentsSchema.safeParse(data)
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' }
+
+  const { jobId, userIds } = parsed.data
+
+  await prisma.$transaction([
+    prisma.jobAssignment.deleteMany({ where: { jobId } }),
+    ...(userIds.length > 0
+      ? [prisma.jobAssignment.createMany({ data: userIds.map((userId) => ({ jobId, userId })), skipDuplicates: true })]
+      : []),
+  ])
+
+  revalidatePath(`/jobs/${jobId}`)
   return { success: true }
 }
 
