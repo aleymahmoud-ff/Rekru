@@ -64,6 +64,16 @@ export function JobPerformancePanel({ jobCandidates }: Props) {
   const onHold = jobCandidates.filter((jc) => jc.status === 'on_hold').length
   const totalInterviews = jobCandidates.reduce((sum, jc) => sum + jc.interviews.length, 0)
 
+  // Build candidates-by-stage breakdown (active candidates only)
+  const candidatesByStage = new Map<string, number>()
+  for (const jc of jobCandidates) {
+    if (jc.status === 'active' && jc.currentStage) {
+      const name = jc.currentStage.name
+      candidatesByStage.set(name, (candidatesByStage.get(name) ?? 0) + 1)
+    }
+  }
+  const candidateStageRows = Array.from(candidatesByStage.entries())
+
   // Build stage funnel: for each stage, collect all interviews done there
   const stageMap = new Map<string, { pass: number; fail: number; on_hold: number; total: number }>()
   for (const jc of jobCandidates) {
@@ -154,6 +164,40 @@ export function JobPerformancePanel({ jobCandidates }: Props) {
             <BarChart3 className="h-3.5 w-3.5" />
             <span>{totalInterviews} interview{totalInterviews !== 1 ? 's' : ''} conducted</span>
           </div>
+
+          {/* Candidates currently at each stage */}
+          {candidateStageRows.length > 0 && (
+            <div>
+              <p
+                className="text-xs font-semibold uppercase tracking-wider mb-2"
+                style={{ fontFamily: 'var(--font-body)', color: '#9c9690' }}
+              >
+                Active Candidates by Stage
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {candidateStageRows.map(([name, count]) => (
+                  <div
+                    key={name}
+                    className="flex items-center gap-2 rounded-lg border px-3 py-2"
+                    style={{ backgroundColor: '#faf9f7', borderColor: '#e8e5e0' }}
+                  >
+                    <span
+                      className="flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold text-white shrink-0"
+                      style={{ backgroundColor: '#1e3a5f' }}
+                    >
+                      {count}
+                    </span>
+                    <span
+                      className="text-sm"
+                      style={{ fontFamily: 'var(--font-body)', color: '#1a1a1a' }}
+                    >
+                      {name}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Stage funnel table */}
           {stageRows.length > 0 && (
