@@ -6,7 +6,7 @@ export const createJobSchema = z.object({
 })
 
 export const updateJobStatusSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().min(1),
   status: z.enum(['open', 'closed']),
 })
 
