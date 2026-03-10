@@ -32,7 +32,14 @@ export async function conductInterview(input: unknown): Promise<ActionResult> {
   const existingInterview = await prisma.interview.findUnique({
     where: { jobCandidateId_stageId: { jobCandidateId, stageId } },
   })
-  if (existingInterview) return { success: false, error: 'Interview already conducted for this stage' }
+  if (existingInterview) {
+    if (existingInterview.outcome === 'on_hold') {
+      // Allow re-interview: delete the previous on_hold interview and its answers
+      await prisma.interview.delete({ where: { id: existingInterview.id } })
+    } else {
+      return { success: false, error: 'Interview already conducted for this stage' }
+    }
+  }
 
   // Create interview with answers
   await prisma.interview.create({

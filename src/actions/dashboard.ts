@@ -3,11 +3,16 @@
 import { prisma } from '@/lib/db'
 
 export async function getDashboardStats() {
-  const [statusCounts, stageCounts, recentInterviews, totalJobs] = await Promise.all([
+  const [statusCounts, onHoldCount, stageCounts, recentInterviews, totalJobs] = await Promise.all([
     // Count by pipeline status
     prisma.jobCandidate.groupBy({
       by: ['status'],
       _count: { id: true },
+    }),
+
+    // Count candidates with on_hold interviews (still active but waiting)
+    prisma.interview.count({
+      where: { outcome: 'on_hold' },
     }),
 
     // Count active candidates per stage
@@ -52,11 +57,18 @@ export async function getDashboardStats() {
     active: 0,
     hired: 0,
     rejected: 0,
-    on_hold: 0,
+    on_hold: onHoldCount,
   }
   for (const s of statusCounts) {
-    statusMap[s.status] = s._count.id
+    if (s.status === 'active') {
+      // Active minus on-hold (they're technically active but paused)
+      statusMap.active = s._count.id - onHoldCount
+    } else {
+      statusMap[s.status] = s._count.id
+    }
   }
+  // Ensure active doesn't go negative
+  if (statusMap.active < 0) statusMap.active = 0
 
   return {
     statusCounts: statusMap,
