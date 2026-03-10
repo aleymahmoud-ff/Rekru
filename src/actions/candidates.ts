@@ -76,3 +76,18 @@ export async function addCandidateToJob(
   revalidatePath('/dashboard')
   return { success: true }
 }
+
+export async function removeJobCandidate(jobCandidateId: string, jobId: string): Promise<ActionResult> {
+  const user = await getCurrentUser()
+  if (!user) return { success: false, error: 'Not authenticated' }
+
+  // Delete interviews first (no cascade defined), answers cascade from Interview
+  await prisma.$transaction([
+    prisma.interview.deleteMany({ where: { jobCandidateId } }),
+    prisma.jobCandidate.delete({ where: { id: jobCandidateId } }),
+  ])
+
+  revalidatePath(`/jobs/${jobId}`)
+  revalidatePath('/dashboard')
+  return { success: true }
+}

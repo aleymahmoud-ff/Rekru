@@ -7,6 +7,7 @@ import { Plus, Pencil } from 'lucide-react'
 import { JobStatusToggle } from '@/components/jobs/job-status-toggle'
 import { EditJobDialog } from '@/components/jobs/edit-job-dialog'
 import { DeleteJobButton } from '@/components/jobs/delete-job-button'
+import { RemoveCandidateButton } from '@/components/jobs/remove-candidate-button'
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -109,6 +110,11 @@ export default async function JobDetailPage({ params }: Props) {
                     <p className="text-xs" style={{ fontFamily: 'var(--font-body)', color: '#6b6560' }}>
                       {jc.currentStage?.name ?? (jc.status === 'hired' ? 'Completed' : '—')}
                     </p>
+                    <RemoveCandidateButton
+                      jobCandidateId={jc.id}
+                      jobId={job.id}
+                      candidateName={jc.candidate.fullName}
+                    />
                     <span
                       className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border"
                       style={{ color: st.color, backgroundColor: st.bg, borderColor: st.border }}
