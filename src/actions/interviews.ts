@@ -159,21 +159,33 @@ export async function getCandidatesForStage(stageId: string) {
   })
 }
 
-export async function getInterviewFormData(stageId: string) {
-  return prisma.interviewStage.findUnique({
-    where: { id: stageId },
+async function getScopedQuestions(stageId: string, jobId: string) {
+  return prisma.stageQuestion.findMany({
+    where: {
+      stageId,
+      isActive: true,
+      OR: [
+        { scope: 'universal' },
+        { jobLinks: { some: { jobId } } },
+      ],
+    },
+    orderBy: { sortOrder: 'asc' },
     include: {
-      questions: {
-        where: { isActive: true },
-        orderBy: { sortOrder: 'asc' },
-        include: {
-          options: {
-            orderBy: { sortOrder: 'asc' },
-          },
-        },
-      },
+      options: { orderBy: { sortOrder: 'asc' } },
     },
   })
+}
+
+export async function getInterviewFormData(stageId: string, jobId: string) {
+  const [stage, questions] = await Promise.all([
+    prisma.interviewStage.findUnique({
+      where: { id: stageId },
+      select: { id: true, name: true, sortOrder: true, isActive: true },
+    }),
+    getScopedQuestions(stageId, jobId),
+  ])
+  if (!stage) return null
+  return { ...stage, questions }
 }
 
 export async function getStagesWithCounts() {
@@ -217,7 +229,7 @@ export async function getExistingInterview(jobCandidateId: string, stageId: stri
 }
 
 export async function getInterviewById(interviewId: string) {
-  return prisma.interview.findUnique({
+  const interview = await prisma.interview.findUnique({
     where: { id: interviewId },
     include: {
       answers: {
@@ -235,16 +247,11 @@ export async function getInterviewById(interviewId: string) {
         },
       },
       stage: {
-        include: {
-          questions: {
-            where: { isActive: true },
-            orderBy: { sortOrder: 'asc' },
-            include: {
-              options: { orderBy: { sortOrder: 'asc' } },
-            },
-          },
-        },
+        select: { id: true, name: true, sortOrder: true },
       },
     },
   })
+  if (!interview) return null
+  const questions = await getScopedQuestions(interview.stage.id, interview.jobCandidate.job.id)
+  return { ...interview, questions }
 }

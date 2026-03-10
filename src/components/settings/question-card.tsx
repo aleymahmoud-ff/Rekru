@@ -12,6 +12,7 @@ type Question = {
   questionText: string
   sortOrder: number
   isActive: boolean
+  scope: string
   options: Option[]
 }
 
@@ -33,9 +34,21 @@ export function QuestionCard({ question, stageId }: { question: Question; stageI
           >
             {question.questionText}
           </p>
-          <p className="text-xs mt-0.5" style={{ fontFamily: 'var(--font-body)', color: '#9c9690' }}>
-            Order: {question.sortOrder} · {question.options.length} option{question.options.length !== 1 ? 's' : ''}
-          </p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <p className="text-xs" style={{ fontFamily: 'var(--font-body)', color: '#9c9690' }}>
+              Order: {question.sortOrder} · {question.options.length} option{question.options.length !== 1 ? 's' : ''}
+            </p>
+            <span
+              className="text-[10px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded"
+              style={
+                question.scope === 'job_specific'
+                  ? { color: '#e8913a', backgroundColor: '#fdf3e7' }
+                  : { color: '#9c9690', backgroundColor: '#f3f2ef' }
+              }
+            >
+              {question.scope === 'job_specific' ? 'Job-specific' : 'Universal'}
+            </span>
+          </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <button

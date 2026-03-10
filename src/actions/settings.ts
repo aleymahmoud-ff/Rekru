@@ -98,6 +98,7 @@ export async function createQuestion(_prevState: ActionResult, formData: FormDat
     stageId: formData.get('stageId'),
     questionText: formData.get('questionText'),
     sortOrder: formData.get('sortOrder'),
+    scope: formData.get('scope') || 'universal',
   })
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' }
 
@@ -138,6 +139,26 @@ export async function getStageWithQuestions(stageId: string) {
       },
     },
   })
+}
+
+export async function getJobSpecificQuestions() {
+  const stages = await prisma.interviewStage.findMany({
+    where: { isActive: true },
+    orderBy: { sortOrder: 'asc' },
+    include: {
+      questions: {
+        where: { isActive: true, scope: 'job_specific' },
+        orderBy: { sortOrder: 'asc' },
+        select: { id: true, questionText: true, sortOrder: true },
+      },
+    },
+  })
+  return stages
+    .filter((s) => s.questions.length > 0)
+    .map((s) => ({
+      stage: { id: s.id, name: s.name, sortOrder: s.sortOrder },
+      questions: s.questions,
+    }))
 }
 
 // ---------- Options ----------

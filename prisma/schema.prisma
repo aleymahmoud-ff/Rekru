@@ -53,6 +53,13 @@ enum InterviewOutcome {
   @@map("interview_outcome")
 }
 
+enum QuestionScope {
+  universal
+  job_specific
+
+  @@map("question_scope")
+}
+
 // ---------------------------------------------------------------------------
 // Models
 // ---------------------------------------------------------------------------
@@ -85,6 +92,7 @@ model Job {
 
   createdBy      User           @relation(fields: [createdById], references: [id])
   jobCandidates  JobCandidate[]
+  jobQuestions   JobQuestion[]
 
   @@index([status], name: "jobs_status_idx")
   @@index([createdById])
@@ -145,17 +153,19 @@ model InterviewStage {
 }
 
 model StageQuestion {
-  id           String   @id @default(uuid())
-  stageId      String   @map("stage_id")
-  questionText String   @map("question_text")
-  sortOrder    Int      @map("sort_order")
-  isActive     Boolean  @default(true) @map("is_active")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id           String        @id @default(uuid())
+  stageId      String        @map("stage_id")
+  questionText String        @map("question_text")
+  sortOrder    Int           @map("sort_order")
+  isActive     Boolean       @default(true) @map("is_active")
+  scope        QuestionScope @default(universal)
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
 
-  stage           InterviewStage    @relation(fields: [stageId], references: [id], onDelete: Cascade)
-  options         QuestionOption[]
+  stage            InterviewStage    @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  options          QuestionOption[]
   interviewAnswers InterviewAnswer[]
+  jobLinks         JobQuestion[]
 
   @@index([stageId, isActive, sortOrder], name: "stage_questions_stage_idx")
   @@map("stage_questions")
@@ -215,6 +225,19 @@ model InterviewAnswer {
   @@unique([interviewId, questionId])
   @@index([interviewId], name: "interview_answers_interview_idx")
   @@map("interview_answers")
+}
+
+model JobQuestion {
+  id         String @id @default(uuid())
+  jobId      String @map("job_id")
+  questionId String @map("question_id")
+
+  job      Job           @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  question StageQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, questionId])
+  @@index([jobId], name: "job_questions_job_idx")
+  @@map("job_questions")
 }
 
 model AppSettings {

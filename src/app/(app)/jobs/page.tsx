@@ -2,7 +2,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { PageHeader } from '@/components/shared/page-header'
 import { getJobs } from '@/actions/jobs'
-import { Plus, Briefcase, ChevronRight } from 'lucide-react'
+import { getJobSpecificQuestions } from '@/actions/settings'
+import { Briefcase, ChevronRight } from 'lucide-react'
 import { CreateJobDialog } from '@/components/jobs/create-job-dialog'
 
 export const metadata: Metadata = {
@@ -10,14 +11,14 @@ export const metadata: Metadata = {
 }
 
 export default async function JobsPage() {
-  const jobs = await getJobs()
+  const [jobs, jobSpecificQuestions] = await Promise.all([getJobs(), getJobSpecificQuestions()])
 
   return (
     <div>
       <PageHeader
         title="Jobs"
         description="Manage your job openings"
-        action={<CreateJobDialog />}
+        action={<CreateJobDialog jobSpecificQuestions={jobSpecificQuestions} />}
       />
 
       {jobs.length === 0 ? (

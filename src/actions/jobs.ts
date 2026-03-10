@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
-import { createJobSchema } from '@/lib/validations/job'
+import { createJobSchema, linkJobQuestionsSchema } from '@/lib/validations/job'
 
 type ActionResult = { success: boolean; error?: string; id?: string }
 
@@ -31,6 +31,30 @@ export async function createJob(_prevState: ActionResult, formData: FormData): P
 
   revalidatePath('/jobs')
   return { success: true, id: job.id }
+}
+
+export async function linkJobQuestions(data: unknown): Promise<ActionResult> {
+  const user = await getCurrentUser()
+  if (!user) return { success: false, error: 'Not authenticated' }
+
+  const parsed = linkJobQuestionsSchema.safeParse(data)
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' }
+
+  const { jobId, questionIds } = parsed.data
+
+  // Delete existing links for this job, then insert selected ones
+  await prisma.$transaction([
+    prisma.jobQuestion.deleteMany({ where: { jobId } }),
+    ...(questionIds.length > 0
+      ? [prisma.jobQuestion.createMany({
+          data: questionIds.map((questionId) => ({ jobId, questionId })),
+          skipDuplicates: true,
+        })]
+      : []),
+  ])
+
+  revalidatePath(`/jobs/${jobId}`)
+  return { success: true }
 }
 
 export async function toggleJobStatus(jobId: string): Promise<ActionResult> {

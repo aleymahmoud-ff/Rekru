@@ -10,4 +10,9 @@ export const updateJobStatusSchema = z.object({
   status: z.enum(['open', 'closed']),
 })
 
+export const linkJobQuestionsSchema = z.object({
+  jobId: z.string().min(1),
+  questionIds: z.array(z.string().min(1)),
+})
+
 export type CreateJobInput = z.infer<typeof createJobSchema>

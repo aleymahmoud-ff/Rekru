@@ -41,7 +41,7 @@ export default async function EditInterviewPage({ params }: Props) {
       <InterviewForm
         stageId={interview.stage.id}
         jobCandidateId={interview.jobCandidate.id}
-        questions={interview.stage.questions}
+        questions={interview.questions}
         initialData={initialData}
         redirectTo={`/jobs/${interview.jobCandidate.job.id}`}
       />

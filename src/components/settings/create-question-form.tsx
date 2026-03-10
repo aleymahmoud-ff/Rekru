@@ -19,6 +19,18 @@ export function CreateQuestionForm({ stageId, nextOrder }: { stageId: string; ne
         <Label className="text-xs" style={{ fontFamily: 'var(--font-body)' }}>Sort Order</Label>
         <Input name="sortOrder" type="number" defaultValue={nextOrder} required style={{ fontFamily: 'var(--font-body)' }} />
       </div>
+      <div className="space-y-1.5">
+        <Label className="text-xs" style={{ fontFamily: 'var(--font-body)' }}>Scope</Label>
+        <select
+          name="scope"
+          defaultValue="universal"
+          className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1"
+          style={{ fontFamily: 'var(--font-body)', borderColor: '#e8e5e0', color: '#1a1a1a' }}
+        >
+          <option value="universal">Universal — asked for all jobs</option>
+          <option value="job_specific">Job-specific — selected per job</option>
+        </select>
+      </div>
       {state.error && (
         <p className="text-xs text-red-600" style={{ fontFamily: 'var(--font-body)' }}>{state.error}</p>
       )}

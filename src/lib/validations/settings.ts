@@ -16,6 +16,7 @@ export const createQuestionSchema = z.object({
   stageId: z.string().min(1),
   questionText: z.string().min(2, 'Question text is required').max(1000),
   sortOrder: z.coerce.number().int().min(0),
+  scope: z.enum(['universal', 'job_specific']).default('universal'),
 })
 
 export const updateQuestionSchema = z.object({

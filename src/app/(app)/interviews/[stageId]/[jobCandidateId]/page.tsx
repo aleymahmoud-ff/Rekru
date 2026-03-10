@@ -14,19 +14,21 @@ export const metadata: Metadata = {
 export default async function ConductInterviewPage({ params }: Props) {
   const { stageId, jobCandidateId } = await params
 
-  const [stage, jobCandidate, existingInterview] = await Promise.all([
-    getInterviewFormData(stageId),
+  const [jobCandidate, existingInterview] = await Promise.all([
     prisma.jobCandidate.findUnique({
       where: { id: jobCandidateId },
       include: {
         candidate: { select: { fullName: true, email: true } },
-        job: { select: { title: true } },
+        job: { select: { id: true, title: true } },
       },
     }),
     getExistingInterview(jobCandidateId, stageId),
   ])
 
-  if (!stage || !jobCandidate) notFound()
+  if (!jobCandidate) notFound()
+  const stage = await getInterviewFormData(stageId, jobCandidate.jobId)
+
+  if (!stage) notFound()
   if (jobCandidate.currentStageId !== stageId) notFound()
   if (jobCandidate.status !== 'active') notFound()
 
