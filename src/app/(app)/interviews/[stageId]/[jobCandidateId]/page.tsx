@@ -5,6 +5,7 @@ import { getInterviewFormData, getExistingInterview } from '@/actions/interviews
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 import { InterviewForm } from '@/components/interviews/interview-form'
+import { CandidateProfileCard } from '@/components/interviews/candidate-profile-card'
 
 type Props = { params: Promise<{ stageId: string; jobCandidateId: string }> }
 
@@ -19,7 +20,7 @@ export default async function ConductInterviewPage({ params }: Props) {
     prisma.jobCandidate.findUnique({
       where: { id: jobCandidateId },
       include: {
-        candidate: { select: { fullName: true, email: true } },
+        candidate: { select: { fullName: true, email: true, phone: true, cvLink: true, createdAt: true } },
         job: { select: { id: true, title: true } },
       },
     }),
@@ -64,18 +65,34 @@ export default async function ConductInterviewPage({ params }: Props) {
     : null
 
   return (
-    <div className="max-w-3xl">
+    <div>
       <PageHeader
         title={`${existingInterview ? 'Re-interview' : 'Interview'}: ${jobCandidate.candidate.fullName}`}
         description={`${stage.name} · ${jobCandidate.job.title}`}
       />
 
-      <InterviewForm
-        stageId={stageId}
-        jobCandidateId={jobCandidateId}
-        questions={stage.questions}
-        initialData={initialData}
-      />
+      <div className="flex gap-6 items-start">
+        {/* Interview form — left side */}
+        <div className="flex-1 min-w-0">
+          <InterviewForm
+            stageId={stageId}
+            jobCandidateId={jobCandidateId}
+            questions={stage.questions}
+            initialData={initialData}
+          />
+        </div>
+
+        {/* Candidate profile — right side (sticky) */}
+        <div className="hidden lg:block w-[300px] shrink-0">
+          <div className="sticky top-6">
+            <CandidateProfileCard
+              candidate={jobCandidate.candidate}
+              jobTitle={jobCandidate.job.title}
+              stageName={stage.name}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
