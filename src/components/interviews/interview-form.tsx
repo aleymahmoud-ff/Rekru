@@ -76,7 +76,7 @@ export function InterviewForm({
       return
     }
 
-    if (isFinalStage && outcome === 'pass' && hireDecision === null) {
+    if (isFinalStage && hireDecision === null) {
       setError('Please make a hiring decision')
       return
     }
@@ -95,7 +95,7 @@ export function InterviewForm({
         outcome,
         overallNotes: overallNotes || undefined,
         interviewId: initialData?.interviewId,
-        hireDecision: isFinalStage && outcome === 'pass' ? (hireDecision ?? undefined) : undefined,
+        hireDecision: isFinalStage ? (hireDecision ?? undefined) : undefined,
         answers: questions.map((q) => ({
           questionId: q.id,
           optionId: answers[q.id].optionId,
@@ -282,23 +282,17 @@ export function InterviewForm({
         </div>
       </div>
 
-      {/* Hire decision — only on final stage when outcome is pass */}
-      {isFinalStage && outcome === 'pass' && (
+      {/* Hire decision — always visible on final stage */}
+      {isFinalStage && (
         <div
-          className="rounded-xl border-2 bg-white p-6"
-          style={{ borderColor: '#a7f3d0' }}
+          className="rounded-xl border bg-white p-6"
+          style={{ borderColor: '#e8e5e0' }}
         >
           <p
-            className="text-base font-semibold mb-2"
+            className="text-base font-semibold mb-4"
             style={{ fontFamily: 'var(--font-body)', color: '#1a1a1a' }}
           >
             Hire this candidate?
-          </p>
-          <p
-            className="text-sm mb-4"
-            style={{ fontFamily: 'var(--font-body)', color: '#9c9690' }}
-          >
-            This is the final stage. Passing does not automatically hire — please confirm your decision.
           </p>
           <div className="grid grid-cols-2 gap-3">
             <button
