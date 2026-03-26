@@ -46,6 +46,14 @@ export default async function ConductInterviewPage({ params }: Props) {
   if (jobCandidate.currentStageId !== stageId) notFound()
   if (jobCandidate.status !== 'active') notFound()
 
+  // Check if this is the final stage (no active stage after this one)
+  const nextStage = await prisma.interviewStage.findFirst({
+    where: { isActive: true, sortOrder: { gt: stage.sortOrder } },
+    orderBy: { sortOrder: 'asc' },
+    select: { id: true },
+  })
+  const isFinalStage = !nextStage
+
   // Prepare initial data from existing on_hold interview
   const initialData = existingInterview
     ? {
@@ -79,11 +87,12 @@ export default async function ConductInterviewPage({ params }: Props) {
             jobCandidateId={jobCandidateId}
             questions={stage.questions}
             initialData={initialData}
+            isFinalStage={isFinalStage}
           />
         </div>
 
         {/* Candidate profile — right side (sticky) */}
-        <div className="hidden lg:block w-[300px] shrink-0">
+        <div className="hidden lg:block w-[340px] shrink-0">
           <div className="sticky top-6">
             <CandidateProfileCard
               candidate={jobCandidate.candidate}

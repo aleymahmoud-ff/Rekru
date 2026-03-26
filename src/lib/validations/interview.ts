@@ -5,6 +5,7 @@ export const conductInterviewSchema = z.object({
   stageId: z.string().min(1),
   outcome: z.enum(['pass', 'fail', 'on_hold']),
   overallNotes: z.string().optional(),
+  hireDecision: z.boolean().optional(),
   interviewId: z.string().min(1).optional(),
   answers: z.array(
     z.object({

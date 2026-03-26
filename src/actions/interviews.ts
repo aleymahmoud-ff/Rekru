@@ -16,7 +16,7 @@ export async function conductInterview(input: unknown): Promise<ActionResult> {
     return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' }
   }
 
-  const { jobCandidateId, stageId, outcome, overallNotes, answers, interviewId } = parsed.data
+  const { jobCandidateId, stageId, outcome, overallNotes, answers, interviewId, hireDecision } = parsed.data
 
   // Verify the job candidate exists
   const jobCandidate = await prisma.jobCandidate.findUnique({
@@ -57,7 +57,7 @@ export async function conductInterview(input: unknown): Promise<ActionResult> {
 
     // Handle outcome changes if the candidate is still active at this stage
     if (jobCandidate.status === 'active' && jobCandidate.currentStageId === existing.stageId) {
-      await handleOutcomeChange(existing.stageId, jobCandidateId, outcome)
+      await handleOutcomeChange(existing.stageId, jobCandidateId, outcome, hireDecision)
     }
 
     revalidatePath('/dashboard')
@@ -101,7 +101,7 @@ export async function conductInterview(input: unknown): Promise<ActionResult> {
     },
   })
 
-  await handleOutcomeChange(stageId, jobCandidateId, outcome)
+  await handleOutcomeChange(stageId, jobCandidateId, outcome, hireDecision)
 
   revalidatePath('/dashboard')
   revalidatePath(`/jobs/${jobCandidate.jobId}`)
@@ -109,7 +109,7 @@ export async function conductInterview(input: unknown): Promise<ActionResult> {
   return { success: true }
 }
 
-async function handleOutcomeChange(stageId: string, jobCandidateId: string, outcome: string) {
+async function handleOutcomeChange(stageId: string, jobCandidateId: string, outcome: string, hireDecision?: boolean) {
   if (outcome === 'pass') {
     const currentStage = await prisma.interviewStage.findUnique({
       where: { id: stageId },
@@ -130,12 +130,14 @@ async function handleOutcomeChange(stageId: string, jobCandidateId: string, outc
         where: { id: jobCandidateId },
         data: { currentStageId: nextStage.id },
       })
-    } else {
+    } else if (hireDecision) {
+      // Final stage + hire decision = hired
       await prisma.jobCandidate.update({
         where: { id: jobCandidateId },
         data: { status: 'hired', hiredAt: new Date(), currentStageId: null },
       })
     }
+    // Final stage + pass without hire → stays at current stage (passed but not hired)
   } else if (outcome === 'fail') {
     await prisma.jobCandidate.update({
       where: { id: jobCandidateId },

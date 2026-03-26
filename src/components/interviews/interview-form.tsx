@@ -6,7 +6,7 @@ import { conductInterview } from '@/actions/interviews'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import { Pencil } from 'lucide-react'
+import { Pencil, UserCheck, UserX } from 'lucide-react'
 
 type Question = {
   id: string
@@ -31,12 +31,14 @@ export function InterviewForm({
   questions,
   initialData,
   redirectTo,
+  isFinalStage = false,
 }: {
   stageId: string
   jobCandidateId: string
   questions: Question[]
   initialData?: InitialData | null
   redirectTo?: string
+  isFinalStage?: boolean
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -65,11 +67,17 @@ export function InterviewForm({
   const [outcome, setOutcome] = useState<'pass' | 'fail' | 'on_hold' | ''>(
     initialData?.outcome ?? ''
   )
+  const [hireDecision, setHireDecision] = useState<boolean | null>(null)
   const [overallNotes, setOverallNotes] = useState(initialData?.overallNotes ?? '')
 
   const handleSubmit = () => {
     if (!outcome) {
       setError('Please select an outcome')
+      return
+    }
+
+    if (isFinalStage && outcome === 'pass' && hireDecision === null) {
+      setError('Please make a hiring decision')
       return
     }
 
@@ -87,6 +95,7 @@ export function InterviewForm({
         outcome,
         overallNotes: overallNotes || undefined,
         interviewId: initialData?.interviewId,
+        hireDecision: isFinalStage && outcome === 'pass' ? (hireDecision ?? undefined) : undefined,
         answers: questions.map((q) => ({
           questionId: q.id,
           optionId: answers[q.id].optionId,
@@ -272,6 +281,61 @@ export function InterviewForm({
           })}
         </div>
       </div>
+
+      {/* Hire decision — only on final stage when outcome is pass */}
+      {isFinalStage && outcome === 'pass' && (
+        <div
+          className="rounded-xl border-2 bg-white p-6"
+          style={{ borderColor: '#a7f3d0' }}
+        >
+          <p
+            className="text-base font-semibold mb-2"
+            style={{ fontFamily: 'var(--font-body)', color: '#1a1a1a' }}
+          >
+            Hire this candidate?
+          </p>
+          <p
+            className="text-sm mb-4"
+            style={{ fontFamily: 'var(--font-body)', color: '#9c9690' }}
+          >
+            This is the final stage. Passing does not automatically hire — please confirm your decision.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setHireDecision(true)}
+              className={cn(
+                'flex items-center justify-center gap-2 rounded-lg border-2 px-4 py-3 text-sm font-semibold transition-all duration-150'
+              )}
+              style={{
+                fontFamily: 'var(--font-body)',
+                borderColor: hireDecision === true ? '#059669' : '#e8e5e0',
+                backgroundColor: hireDecision === true ? '#ecfdf5' : '#ffffff',
+                color: hireDecision === true ? '#059669' : '#6b6560',
+              }}
+            >
+              <UserCheck className="h-4 w-4" />
+              Yes, Hire
+            </button>
+            <button
+              type="button"
+              onClick={() => setHireDecision(false)}
+              className={cn(
+                'flex items-center justify-center gap-2 rounded-lg border-2 px-4 py-3 text-sm font-semibold transition-all duration-150'
+              )}
+              style={{
+                fontFamily: 'var(--font-body)',
+                borderColor: hireDecision === false ? '#9c9690' : '#e8e5e0',
+                backgroundColor: hireDecision === false ? '#f5f5f4' : '#ffffff',
+                color: hireDecision === false ? '#1a1a1a' : '#6b6560',
+              }}
+            >
+              <UserX className="h-4 w-4" />
+              Not Yet
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Error + Submit */}
       {error && (
