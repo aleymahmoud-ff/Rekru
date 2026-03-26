@@ -144,6 +144,7 @@ model InterviewStage {
   name      String   @db.VarChar(255)
   sortOrder Int      @map("sort_order")
   isActive  Boolean  @default(true) @map("is_active")
+  isFinal   Boolean  @default(false) @map("is_final")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

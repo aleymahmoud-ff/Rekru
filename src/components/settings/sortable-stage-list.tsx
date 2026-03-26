@@ -17,7 +17,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, ChevronRight, Pencil, Check, X } from 'lucide-react'
+import { GripVertical, ChevronRight, Pencil, Check, X, Lock } from 'lucide-react'
 import { reorderStages, updateStage } from '@/actions/settings'
 import { StageActions } from './stage-actions'
 
@@ -26,12 +26,14 @@ type Stage = {
   name: string
   sortOrder: number
   isActive: boolean
+  isFinal: boolean
   _count: { questions: number; jobCandidates: number; interviews: number }
 }
 
 function SortableStageRow({ stage, onRename }: { stage: Stage; onRename: (id: string, name: string) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: stage.id,
+    disabled: stage.isFinal,
   })
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(stage.name)
@@ -72,14 +74,20 @@ function SortableStageRow({ stage, onRename }: { stage: Stage; onRename: (id: st
       style={style}
       className="flex items-center gap-3 rounded-xl border bg-white px-5 py-4"
     >
-      <button
-        {...attributes}
-        {...listeners}
-        className="touch-none cursor-grab active:cursor-grabbing p-0.5 rounded"
-        title="Drag to reorder"
-      >
-        <GripVertical className="h-4 w-4 shrink-0" style={{ color: '#d4d0ca' }} />
-      </button>
+      {stage.isFinal ? (
+        <div className="p-0.5" title="Final stage — cannot be reordered">
+          <Lock className="h-4 w-4 shrink-0" style={{ color: '#9c9690' }} />
+        </div>
+      ) : (
+        <button
+          {...attributes}
+          {...listeners}
+          className="touch-none cursor-grab active:cursor-grabbing p-0.5 rounded"
+          title="Drag to reorder"
+        >
+          <GripVertical className="h-4 w-4 shrink-0" style={{ color: '#d4d0ca' }} />
+        </button>
+      )}
       <div className="flex-1 min-w-0">
         {editing ? (
           <div className="flex items-center gap-1.5">
@@ -107,6 +115,14 @@ function SortableStageRow({ stage, onRename }: { stage: Stage; onRename: (id: st
             >
               {stage.name}
             </p>
+            {stage.isFinal && (
+              <span
+                className="text-[10px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded"
+                style={{ color: '#1e3a5f', backgroundColor: '#e0ecf8' }}
+              >
+                Final
+              </span>
+            )}
             {!stage.isActive && (
               <span
                 className="text-[10px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded"
@@ -124,7 +140,7 @@ function SortableStageRow({ stage, onRename }: { stage: Stage; onRename: (id: st
           Order: {stage.sortOrder} · {stage._count.questions} question{stage._count.questions !== 1 ? 's' : ''} · {stage._count.jobCandidates} candidate{stage._count.jobCandidates !== 1 ? 's' : ''}
         </p>
       </div>
-      <StageActions stage={stage} />
+      {!stage.isFinal && <StageActions stage={stage} />}
       <Link
         href={`/settings/stages/${stage.id}/questions`}
         className="flex items-center gap-1 text-xs font-medium shrink-0 transition-colors hover:opacity-80"
@@ -152,7 +168,15 @@ export function SortableStageList({ initialStages }: { initialStages: Stage[] })
     if (!over || active.id === over.id) return
 
     const oldIndex = stages.findIndex((s) => s.id === active.id)
-    const newIndex = stages.findIndex((s) => s.id === over.id)
+    let newIndex = stages.findIndex((s) => s.id === over.id)
+
+    // Prevent dropping after the final stage
+    const finalIndex = stages.findIndex((s) => s.isFinal)
+    if (finalIndex >= 0 && newIndex >= finalIndex) {
+      newIndex = finalIndex - 1
+    }
+    if (newIndex < 0 || newIndex === oldIndex) return
+
     const reordered = arrayMove(stages, oldIndex, newIndex).map((s, i) => ({
       ...s,
       sortOrder: i + 1,

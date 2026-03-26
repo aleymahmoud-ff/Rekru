@@ -69,12 +69,13 @@ async function main() {
 
   const finalStage = await prisma.interviewStage.upsert({
     where: { id: 'stage-final-interview' },
-    update: {},
+    update: { isFinal: true },
     create: {
       id: 'stage-final-interview',
       name: 'Final Interview',
       sortOrder: 3,
       isActive: true,
+      isFinal: true,
     },
   })
 
@@ -166,17 +167,7 @@ async function main() {
     standardOptions('q-tech-problem-solving')
   )
 
-  // Final Interview question
-  await seedQuestion(
-    'q-final-hire',
-    finalStage.id,
-    'Hire this candidate?',
-    1,
-    [
-      { id: 'q-final-hire-opt-0', label: 'Not Hired', value: 0, sortOrder: 1 },
-      { id: 'q-final-hire-opt-1', label: 'Hired',     value: 1, sortOrder: 2 },
-    ]
-  )
+  // Note: "Hire this candidate?" is built into the final stage UI, not a regular question
 
   console.log('Questions and options seeded.')
   console.log('Seed complete.')

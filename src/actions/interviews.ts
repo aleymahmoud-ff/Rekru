@@ -191,7 +191,7 @@ export async function getInterviewFormData(stageId: string, jobId: string) {
   const [stage, questions] = await Promise.all([
     prisma.interviewStage.findUnique({
       where: { id: stageId },
-      select: { id: true, name: true, sortOrder: true, isActive: true },
+      select: { id: true, name: true, sortOrder: true, isActive: true, isFinal: true },
     }),
     getScopedQuestions(stageId, jobId),
   ])

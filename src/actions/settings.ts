@@ -40,7 +40,18 @@ export async function createStage(_prevState: ActionResult, formData: FormData):
   })
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' }
 
-  await prisma.interviewStage.create({ data: parsed.data })
+  // Insert before the final stage and bump the final stage's sortOrder
+  const finalStage = await prisma.interviewStage.findFirst({ where: { isFinal: true }, select: { id: true, sortOrder: true } })
+  if (finalStage) {
+    const insertOrder = finalStage.sortOrder
+    await prisma.$transaction([
+      prisma.interviewStage.update({ where: { id: finalStage.id }, data: { sortOrder: insertOrder + 1 } }),
+      prisma.interviewStage.create({ data: { ...parsed.data, sortOrder: insertOrder } }),
+    ])
+  } else {
+    await prisma.interviewStage.create({ data: parsed.data })
+  }
+
   revalidatePath('/settings/stages')
   return { success: true }
 }
@@ -53,6 +64,14 @@ export async function updateStage(data: unknown): Promise<ActionResult> {
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' }
 
   const { id, ...updates } = parsed.data
+
+  // Protect final stage from being deactivated or reordered
+  const stage = await prisma.interviewStage.findUnique({ where: { id }, select: { isFinal: true } })
+  if (stage?.isFinal) {
+    if (updates.isActive === false) return { success: false, error: 'The final stage cannot be deactivated' }
+    if (updates.sortOrder !== undefined) return { success: false, error: 'The final stage must remain last' }
+  }
+
   await prisma.interviewStage.update({ where: { id }, data: updates })
   revalidatePath('/settings/stages')
   return { success: true }
@@ -61,6 +80,10 @@ export async function updateStage(data: unknown): Promise<ActionResult> {
 export async function deleteStage(stageId: string): Promise<ActionResult> {
   const err = await requireAdmin()
   if (err) return err
+
+  // Protect final stage from deletion
+  const stage = await prisma.interviewStage.findUnique({ where: { id: stageId }, select: { isFinal: true } })
+  if (stage?.isFinal) return { success: false, error: 'The final stage cannot be deleted' }
 
   // Check if any candidates are at this stage
   const count = await prisma.jobCandidate.count({ where: { currentStageId: stageId } })
@@ -74,6 +97,14 @@ export async function deleteStage(stageId: string): Promise<ActionResult> {
 export async function reorderStages(orderedIds: string[]): Promise<ActionResult> {
   const err = await requireAdmin()
   if (err) return err
+
+  // Ensure the final stage stays last
+  const finalStage = await prisma.interviewStage.findFirst({ where: { isFinal: true }, select: { id: true } })
+  if (finalStage) {
+    const filtered = orderedIds.filter((id) => id !== finalStage.id)
+    filtered.push(finalStage.id)
+    orderedIds = filtered
+  }
 
   await prisma.$transaction(
     orderedIds.map((id, index) =>

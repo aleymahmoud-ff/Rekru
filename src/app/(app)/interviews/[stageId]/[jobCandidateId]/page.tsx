@@ -46,13 +46,7 @@ export default async function ConductInterviewPage({ params }: Props) {
   if (jobCandidate.currentStageId !== stageId) notFound()
   if (jobCandidate.status !== 'active') notFound()
 
-  // Check if this is the final stage (no active stage after this one)
-  const nextStage = await prisma.interviewStage.findFirst({
-    where: { isActive: true, sortOrder: { gt: stage.sortOrder } },
-    orderBy: { sortOrder: 'asc' },
-    select: { id: true },
-  })
-  const isFinalStage = !nextStage
+  const isFinalStage = stage.isFinal
 
   // Prepare initial data from existing on_hold interview
   const initialData = existingInterview
