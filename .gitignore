@@ -48,3 +48,4 @@ next-env.d.ts
 
 # database backups
 *.sql
+.claude/settings.local.json
