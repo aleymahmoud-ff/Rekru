@@ -10,9 +10,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // Redirect root to login (or dashboard if session exists — handled by root page)
+  if (pathname === '/') {
+    return NextResponse.next()
+  }
+
   // Check for the session cookie existence (iron-session stores it as "rekru-session").
-  // We only check if the cookie exists here — full validation (user existence, status)
-  // happens in server actions via getCurrentUser().
+  // We only check if the cookie exists here — full validation (user existence, status,
+  // org membership) happens in the layout via getOrgContext().
   const sessionCookie = request.cookies.get('rekru-session')
 
   if (!sessionCookie?.value) {

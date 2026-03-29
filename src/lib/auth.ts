@@ -31,7 +31,7 @@ export async function getSession() {
 export async function getCurrentUser(): Promise<AuthUser | null> {
   const session = await getSession()
 
-  if (!session.userId) {
+  if (!session.userId || !session.orgId) {
     return null
   }
 
@@ -43,6 +43,10 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
       email: true,
       role: true,
       status: true,
+      orgId: true,
+      organization: {
+        select: { slug: true },
+      },
     },
   })
 
@@ -50,5 +54,18 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     return null
   }
 
-  return user
+  // Guard against session/DB mismatch (e.g. user moved to a different org)
+  if (user.orgId !== session.orgId) {
+    return null
+  }
+
+  return {
+    id: user.id,
+    fullName: user.fullName,
+    email: user.email,
+    role: user.role,
+    status: user.status,
+    orgId: user.orgId,
+    orgSlug: user.organization.slug,
+  }
 }

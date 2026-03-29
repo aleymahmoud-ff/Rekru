@@ -34,6 +34,7 @@ function SubmitButton() {
 }
 
 interface FieldErrors {
+  orgName?: string
   fullName?: string
   email?: string
   password?: string
@@ -53,6 +54,7 @@ export default function RegisterPage() {
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     const form = e.currentTarget
     const raw = {
+      orgName: (form.elements.namedItem('orgName') as HTMLInputElement)?.value,
       fullName: (form.elements.namedItem('fullName') as HTMLInputElement)?.value,
       email: (form.elements.namedItem('email') as HTMLInputElement)?.value,
       password: (form.elements.namedItem('password') as HTMLInputElement)?.value,
@@ -72,6 +74,7 @@ export default function RegisterPage() {
     }
   }
 
+  // Registration now redirects automatically — this is a fallback
   if (state.success) {
     return (
       <Card
@@ -90,22 +93,15 @@ export default function RegisterPage() {
               className="text-xl font-bold"
               style={{ fontFamily: 'var(--font-display)', color: '#1a1a1a' }}
             >
-              Registration submitted
+              Organization created!
             </h2>
             <p
               className="text-sm leading-relaxed max-w-xs"
               style={{ fontFamily: 'var(--font-body)', color: '#6b6560' }}
             >
-              Your account is pending admin approval. You&apos;ll be able to sign in once it&apos;s approved.
+              Redirecting to your dashboard...
             </p>
           </div>
-          <Link
-            href="/login"
-            className="mt-2 text-sm font-medium underline underline-offset-4 transition-opacity hover:opacity-80"
-            style={{ color: '#1e3a5f', fontFamily: 'var(--font-body)' }}
-          >
-            Back to sign in
-          </Link>
         </CardContent>
       </Card>
     )
@@ -121,13 +117,13 @@ export default function RegisterPage() {
           className="text-2xl font-bold"
           style={{ fontFamily: 'var(--font-display)', color: '#1a1a1a' }}
         >
-          Create your account
+          Create your organization
         </CardTitle>
         <CardDescription
           className="text-sm"
           style={{ fontFamily: 'var(--font-body)', color: '#6b6560' }}
         >
-          Request access to your team&apos;s Rekru workspace
+          Set up a new Rekru workspace for your team
         </CardDescription>
       </CardHeader>
 
@@ -149,6 +145,31 @@ export default function RegisterPage() {
             </div>
           )}
 
+          {/* Organization Name */}
+          <div className="space-y-1.5">
+            <Label
+              htmlFor="orgName"
+              className="text-xs font-medium"
+              style={{ color: '#1a1a1a', fontFamily: 'var(--font-body)' }}
+            >
+              Organization name
+            </Label>
+            <Input
+              id="orgName"
+              name="orgName"
+              type="text"
+              placeholder="Acme Corp"
+              required
+              className={cn('rounded-lg text-sm', fieldErrors.orgName && 'border-red-400')}
+              style={{ borderColor: fieldErrors.orgName ? undefined : '#e8e5e0', fontFamily: 'var(--font-body)' }}
+            />
+            {fieldErrors.orgName && (
+              <p className="text-xs" style={{ color: '#dc2626', fontFamily: 'var(--font-body)' }}>
+                {fieldErrors.orgName}
+              </p>
+            )}
+          </div>
+
           {/* Full Name */}
           <div className="space-y-1.5">
             <Label
@@ -156,7 +177,7 @@ export default function RegisterPage() {
               className="text-xs font-medium"
               style={{ color: '#1a1a1a', fontFamily: 'var(--font-body)' }}
             >
-              Full name
+              Your full name
             </Label>
             <Input
               id="fullName"

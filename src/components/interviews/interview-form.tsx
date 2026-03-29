@@ -32,6 +32,7 @@ export function InterviewForm({
   initialData,
   redirectTo,
   isFinalStage = false,
+  orgSlug,
 }: {
   stageId: string
   jobCandidateId: string
@@ -39,6 +40,7 @@ export function InterviewForm({
   initialData?: InitialData | null
   redirectTo?: string
   isFinalStage?: boolean
+  orgSlug?: string
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -104,7 +106,10 @@ export function InterviewForm({
       })
 
       if (result.success) {
-        router.push(redirectTo ?? `/interviews/${stageId}`)
+        const fallback = orgSlug
+          ? `/org/${orgSlug}/interviews/${stageId}`
+          : `/interviews/${stageId}`
+        router.push(redirectTo ?? fallback)
       } else {
         setError(result.error ?? 'Something went wrong')
       }

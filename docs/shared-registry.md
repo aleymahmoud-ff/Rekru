@@ -22,8 +22,11 @@
 |------|-----------|---------|------------|
 | `cn()` | `src/lib/utils.ts` | Merges Tailwind class names conditionally | Reem |
 | `getSession()` | `src/lib/auth.ts` | Returns the iron-session instance for the current request | Nabil |
-| `getCurrentUser()` | `src/lib/auth.ts` | Reads session + fetches user from DB; returns `AuthUser \| null` (no password hash) | Nabil |
+| `getCurrentUser()` | `src/lib/auth.ts` | Reads session + fetches user from DB; returns `AuthUser \| null` (no password hash). Validates session orgId matches DB. | Nabil |
 | `SESSION_OPTIONS` | `src/lib/auth.ts` | Shared iron-session config (cookie name, TTL, security flags) | Nabil |
+| `getOrgContext(slug)` | `src/lib/org.ts` | Verifies current user belongs to the org identified by slug; redirects to /login otherwise. Returns `{ orgId, userId, user }`. | Nabil |
+| `orgPath(slug, path)` | `src/lib/org.ts` | Builds an org-scoped URL path. Example: `orgPath('acme', '/dashboard')` → `/org/acme/dashboard` | Nabil |
+| `slugifyOrgName(name)` | `src/lib/validations/auth.ts` | Converts a human-readable org name to a URL-safe slug (lowercase, spaces to hyphens, strips non-alphanumeric) | Nabil |
 
 ---
 
@@ -46,8 +49,8 @@
 | `ActionResponse<T>` | `src/types/api.ts` | Standard server action response wrapper | Nabil |
 | `UserRole` | `src/types/auth.ts` | Re-export of Prisma-generated UserRole union (`admin` \| `user`) | Nabil |
 | `UserStatus` | `src/types/auth.ts` | Re-export of Prisma-generated UserStatus union (`pending` \| `active` \| `inactive`) | Nabil |
-| `SessionData` | `src/types/auth.ts` | Shape of the iron-session payload `{ userId: string }` | Nabil |
-| `AuthUser` | `src/types/auth.ts` | Safe user object returned to server actions (no password hash) | Nabil |
+| `SessionData` | `src/types/auth.ts` | Shape of the iron-session payload `{ userId, orgId, orgSlug }` | Nabil |
+| `AuthUser` | `src/types/auth.ts` | Safe user object returned to server actions (no password hash); includes `orgId` and `orgSlug` | Nabil |
 | `LoginInput` | `src/lib/validations/auth.ts` | Inferred type from `loginSchema` | Nabil |
 | `RegisterInput` | `src/lib/validations/auth.ts` | Inferred type from `registerSchema` | Nabil |
 

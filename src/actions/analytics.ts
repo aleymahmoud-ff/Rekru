@@ -1,11 +1,15 @@
 'use server'
 
 import { prisma } from '@/lib/db'
+import { getCurrentUser } from '@/lib/auth'
 
 export async function getPipelineAnalytics(jobId?: string) {
+  const user = await getCurrentUser()
+  if (!user) return null
+
   const [stages, jobs, failedAnswers, candidateStats] = await Promise.all([
     prisma.interviewStage.findMany({
-      where: { isActive: true },
+      where: { isActive: true, orgId: user.orgId },
       orderBy: { sortOrder: 'asc' },
       select: {
         id: true,
@@ -19,6 +23,7 @@ export async function getPipelineAnalytics(jobId?: string) {
     }),
 
     prisma.job.findMany({
+      where: { orgId: user.orgId },
       orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
       select: {
         id: true,
@@ -39,7 +44,10 @@ export async function getPipelineAnalytics(jobId?: string) {
       where: {
         interview: {
           outcome: 'fail',
-          ...(jobId ? { jobCandidate: { jobId } } : {}),
+          jobCandidate: {
+            job: { orgId: user.orgId },
+            ...(jobId ? { jobId } : {}),
+          },
         },
       },
       select: {
@@ -51,7 +59,10 @@ export async function getPipelineAnalytics(jobId?: string) {
 
     prisma.jobCandidate.groupBy({
       by: ['status'],
-      where: jobId ? { jobId } : {},
+      where: {
+        job: { orgId: user.orgId },
+        ...(jobId ? { jobId } : {}),
+      },
       _count: { id: true },
     }),
   ])

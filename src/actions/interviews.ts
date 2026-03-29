@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
+import { orgPath } from '@/lib/org'
 import { conductInterviewSchema } from '@/lib/validations/interview'
 
 type ActionResult = { success: boolean; error?: string }
@@ -18,13 +19,20 @@ export async function conductInterview(input: unknown): Promise<ActionResult> {
 
   const { jobCandidateId, stageId, outcome, overallNotes, answers, interviewId, hireDecision } = parsed.data
 
-  // Verify the job candidate exists
+  // Verify the job candidate exists and belongs to the user's org
   const jobCandidate = await prisma.jobCandidate.findUnique({
     where: { id: jobCandidateId },
-    select: { id: true, currentStageId: true, status: true, jobId: true },
+    select: {
+      id: true,
+      currentStageId: true,
+      status: true,
+      jobId: true,
+      job: { select: { id: true, orgId: true } },
+    },
   })
 
   if (!jobCandidate) return { success: false, error: 'Candidate not found' }
+  if (jobCandidate.job.orgId !== user.orgId) return { success: false, error: 'Candidate not found' }
 
   // --- EDIT MODE ---
   if (interviewId) {
@@ -57,12 +65,12 @@ export async function conductInterview(input: unknown): Promise<ActionResult> {
 
     // Handle outcome changes if the candidate is still active at this stage
     if (jobCandidate.status === 'active' && jobCandidate.currentStageId === existing.stageId) {
-      await handleOutcomeChange(existing.stageId, jobCandidateId, outcome, hireDecision)
+      await handleOutcomeChange(existing.stageId, jobCandidateId, outcome, hireDecision, user.orgId)
     }
 
-    revalidatePath('/dashboard')
-    revalidatePath(`/jobs/${jobCandidate.jobId}`)
-    revalidatePath('/interviews')
+    revalidatePath(orgPath(user.orgSlug, '/dashboard'))
+    revalidatePath(orgPath(user.orgSlug, `/jobs/${jobCandidate.jobId}`))
+    revalidatePath(orgPath(user.orgSlug, '/interviews'))
     return { success: true }
   }
 
@@ -101,15 +109,15 @@ export async function conductInterview(input: unknown): Promise<ActionResult> {
     },
   })
 
-  await handleOutcomeChange(stageId, jobCandidateId, outcome, hireDecision)
+  await handleOutcomeChange(stageId, jobCandidateId, outcome, hireDecision, user.orgId)
 
-  revalidatePath('/dashboard')
-  revalidatePath(`/jobs/${jobCandidate.jobId}`)
-  revalidatePath('/interviews')
+  revalidatePath(orgPath(user.orgSlug, '/dashboard'))
+  revalidatePath(orgPath(user.orgSlug, `/jobs/${jobCandidate.jobId}`))
+  revalidatePath(orgPath(user.orgSlug, '/interviews'))
   return { success: true }
 }
 
-async function handleOutcomeChange(stageId: string, jobCandidateId: string, outcome: string, hireDecision?: boolean) {
+async function handleOutcomeChange(stageId: string, jobCandidateId: string, outcome: string, hireDecision?: boolean, orgId?: string) {
   if (outcome === 'pass') {
     const currentStage = await prisma.interviewStage.findUnique({
       where: { id: stageId },
@@ -120,6 +128,7 @@ async function handleOutcomeChange(stageId: string, jobCandidateId: string, outc
       where: {
         isActive: true,
         sortOrder: { gt: currentStage!.sortOrder },
+        ...(orgId ? { orgId } : {}),
       },
       orderBy: { sortOrder: 'asc' },
       select: { id: true },
@@ -151,13 +160,14 @@ export async function getCandidatesForStage(stageId: string) {
   const user = await getCurrentUser()
   if (!user) return []
 
-  const jobFilter: Record<string, unknown> = {}
+  const jobFilter: Record<string, unknown> = { job: { orgId: user.orgId } }
   if (user.role !== 'admin') {
     const assigned = await prisma.jobAssignment.findMany({
       where: { userId: user.id },
       select: { jobId: true },
     })
     jobFilter.jobId = { in: assigned.map((a) => a.jobId) }
+    jobFilter.job = { orgId: user.orgId }
   }
 
   return prisma.jobCandidate.findMany({
@@ -188,9 +198,12 @@ async function getScopedQuestions(stageId: string, jobId: string) {
 }
 
 export async function getInterviewFormData(stageId: string, jobId: string) {
+  const user = await getCurrentUser()
+  if (!user) return null
+
   const [stage, questions] = await Promise.all([
-    prisma.interviewStage.findUnique({
-      where: { id: stageId },
+    prisma.interviewStage.findFirst({
+      where: { id: stageId, orgId: user.orgId },
       select: { id: true, name: true, sortOrder: true, isActive: true, isFinal: true },
     }),
     getScopedQuestions(stageId, jobId),
@@ -203,8 +216,8 @@ export async function getStagesWithCounts() {
   const user = await getCurrentUser()
   if (!user) return []
 
-  let stageWhere: Record<string, unknown> = { isActive: true }
-  let candidateWhere: Record<string, unknown> = { status: 'active' }
+  let stageWhere: Record<string, unknown> = { isActive: true, orgId: user.orgId }
+  let candidateWhere: Record<string, unknown> = { status: 'active', job: { orgId: user.orgId } }
 
   if (user.role !== 'admin') {
     const [stageRows, jobRows] = await Promise.all([
@@ -215,11 +228,11 @@ export async function getStagesWithCounts() {
     // Stage access is opt-in restriction: if no entries configured, user can access all stages
     // for their assigned jobs. If entries exist, restrict to only those stages.
     if (stageRows.length > 0) {
-      stageWhere = { isActive: true, id: { in: stageRows.map((r) => r.stageId) } }
+      stageWhere = { isActive: true, orgId: user.orgId, id: { in: stageRows.map((r) => r.stageId) } }
     } else {
-      stageWhere = { isActive: true }
+      stageWhere = { isActive: true, orgId: user.orgId }
     }
-    candidateWhere = { status: 'active', jobId: { in: jobIds } }
+    candidateWhere = { status: 'active', jobId: { in: jobIds }, job: { orgId: user.orgId } }
   }
 
   const stages = await prisma.interviewStage.findMany({
@@ -241,6 +254,16 @@ export async function getStagesWithCounts() {
 }
 
 export async function getExistingInterview(jobCandidateId: string, stageId: string) {
+  const user = await getCurrentUser()
+  if (!user) return null
+
+  // Verify the jobCandidate belongs to the user's org before returning interview data
+  const jobCandidate = await prisma.jobCandidate.findUnique({
+    where: { id: jobCandidateId },
+    select: { job: { select: { orgId: true } } },
+  })
+  if (!jobCandidate || jobCandidate.job.orgId !== user.orgId) return null
+
   const interview = await prisma.interview.findUnique({
     where: { jobCandidateId_stageId: { jobCandidateId, stageId } },
     include: {
@@ -258,6 +281,9 @@ export async function getExistingInterview(jobCandidateId: string, stageId: stri
 }
 
 export async function getInterviewById(interviewId: string) {
+  const user = await getCurrentUser()
+  if (!user) return null
+
   const interview = await prisma.interview.findUnique({
     where: { id: interviewId },
     include: {
@@ -272,7 +298,7 @@ export async function getInterviewById(interviewId: string) {
       jobCandidate: {
         include: {
           candidate: { select: { fullName: true, email: true } },
-          job: { select: { id: true, title: true } },
+          job: { select: { id: true, title: true, orgId: true } },
         },
       },
       stage: {
@@ -281,6 +307,8 @@ export async function getInterviewById(interviewId: string) {
     },
   })
   if (!interview) return null
+  if (interview.jobCandidate.job.orgId !== user.orgId) return null
+
   const questions = await getScopedQuestions(interview.stage.id, interview.jobCandidate.job.id)
   return { ...interview, questions }
 }

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 import { addCandidateSchema } from '@/lib/validations/candidate'
+import { orgPath } from '@/lib/org'
 
 type ActionResult = { success: boolean; error?: string }
 
@@ -29,29 +30,29 @@ export async function addCandidateToJob(
 
   const { fullName, email, phone, cvLink } = parsed.data
 
-  // Check job exists and is open
-  const job = await prisma.job.findUnique({ where: { id: jobId }, select: { status: true } })
+  // Check job exists, is open, and belongs to the user's org
+  const job = await prisma.job.findUnique({ where: { id: jobId, orgId: user.orgId }, select: { status: true } })
   if (!job) return { success: false, error: 'Job not found' }
   if (job.status === 'closed') return { success: false, error: 'This job is closed' }
 
-  // Get first active stage
+  // Get first active stage scoped to the user's org
   const firstStage = await prisma.interviewStage.findFirst({
-    where: { isActive: true },
+    where: { isActive: true, orgId: user.orgId },
     orderBy: { sortOrder: 'asc' },
     select: { id: true },
   })
 
   if (!firstStage) return { success: false, error: 'No active interview stages configured' }
 
-  // Find or create candidate
+  // Find or create candidate scoped to the user's org
   let candidate = await prisma.candidate.findUnique({
-    where: { email },
+    where: { orgId_email: { orgId: user.orgId, email } },
     select: { id: true },
   })
 
   if (!candidate) {
     candidate = await prisma.candidate.create({
-      data: { fullName, email, phone, cvLink: cvLink || null },
+      data: { fullName, email, phone, cvLink: cvLink || null, orgId: user.orgId },
     })
   }
 
@@ -72,8 +73,8 @@ export async function addCandidateToJob(
     },
   })
 
-  revalidatePath(`/jobs/${jobId}`)
-  revalidatePath('/dashboard')
+  revalidatePath(orgPath(user.orgSlug, `/jobs/${jobId}`))
+  revalidatePath(orgPath(user.orgSlug, '/dashboard'))
   return { success: true }
 }
 
@@ -81,13 +82,22 @@ export async function removeJobCandidate(jobCandidateId: string, jobId: string):
   const user = await getCurrentUser()
   if (!user) return { success: false, error: 'Not authenticated' }
 
+  // Verify the job belongs to the user's org before removing the candidate
+  const jobCandidate = await prisma.jobCandidate.findUnique({
+    where: { id: jobCandidateId },
+    select: { job: { select: { orgId: true } } },
+  })
+  if (!jobCandidate || jobCandidate.job.orgId !== user.orgId) {
+    return { success: false, error: 'Not found' }
+  }
+
   // Delete interviews first (no cascade defined), answers cascade from Interview
   await prisma.$transaction([
     prisma.interview.deleteMany({ where: { jobCandidateId } }),
     prisma.jobCandidate.delete({ where: { id: jobCandidateId } }),
   ])
 
-  revalidatePath(`/jobs/${jobId}`)
-  revalidatePath('/dashboard')
+  revalidatePath(orgPath(user.orgSlug, `/jobs/${jobId}`))
+  revalidatePath(orgPath(user.orgSlug, '/dashboard'))
   return { success: true }
 }

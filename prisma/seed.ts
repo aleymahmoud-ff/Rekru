@@ -7,12 +7,27 @@ async function main() {
   console.log('Seeding database...')
 
   // ---------------------------------------------------------------------------
-  // 1. Admin user
+  // 1. Default organization
+  // ---------------------------------------------------------------------------
+  const org = await prisma.organization.upsert({
+    where: { slug: 'default' },
+    update: {},
+    create: {
+      id: 'org-default',
+      name: 'Default Organization',
+      slug: 'default',
+    },
+  })
+
+  console.log(`Organization: ${org.name} (${org.slug})`)
+
+  // ---------------------------------------------------------------------------
+  // 2. Admin user
   // ---------------------------------------------------------------------------
   const passwordHash = await bcrypt.hash('Admin123!', 12)
 
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@rekru.com' },
+    where: { orgId_email: { orgId: org.id, email: 'admin@rekru.com' } },
     update: {},
     create: {
       email: 'admin@rekru.com',
@@ -20,19 +35,20 @@ async function main() {
       passwordHash,
       role: 'admin',
       status: 'active',
+      orgId: org.id,
     },
   })
 
   console.log(`Admin user: ${admin.email}`)
 
   // ---------------------------------------------------------------------------
-  // 2. App settings
+  // 3. App settings
   // ---------------------------------------------------------------------------
   await prisma.appSettings.upsert({
-    where: { id: 1 },
+    where: { orgId: org.id },
     update: {},
     create: {
-      id: 1,
+      orgId: org.id,
       appName: 'Rekru',
       primaryColor: '#1e3a5f',
       secondaryColor: '#f8f7f4',
@@ -43,7 +59,7 @@ async function main() {
   console.log('App settings seeded.')
 
   // ---------------------------------------------------------------------------
-  // 3. Interview stages
+  // 4. Interview stages
   // ---------------------------------------------------------------------------
   const hrStage = await prisma.interviewStage.upsert({
     where: { id: 'stage-hr-interview' },
@@ -53,6 +69,7 @@ async function main() {
       name: 'HR Interview',
       sortOrder: 1,
       isActive: true,
+      orgId: org.id,
     },
   })
 
@@ -64,6 +81,7 @@ async function main() {
       name: 'Technical Interview',
       sortOrder: 2,
       isActive: true,
+      orgId: org.id,
     },
   })
 
@@ -76,16 +94,16 @@ async function main() {
       sortOrder: 3,
       isActive: true,
       isFinal: true,
+      orgId: org.id,
     },
   })
 
   console.log('Interview stages seeded.')
 
   // ---------------------------------------------------------------------------
-  // 4. Stage questions and options
+  // 5. Stage questions and options
   // ---------------------------------------------------------------------------
 
-  // Helper: create question + options in one call
   async function seedQuestion(
     id: string,
     stageId: string,
@@ -129,43 +147,13 @@ async function main() {
   ]
 
   // HR Interview questions
-  await seedQuestion(
-    'q-hr-communication',
-    hrStage.id,
-    'Communication Skills',
-    1,
-    standardOptions('q-hr-communication')
-  )
-  await seedQuestion(
-    'q-hr-professionalism',
-    hrStage.id,
-    'Professionalism',
-    2,
-    standardOptions('q-hr-professionalism')
-  )
-  await seedQuestion(
-    'q-hr-cultural-fit',
-    hrStage.id,
-    'Cultural Fit',
-    3,
-    standardOptions('q-hr-cultural-fit')
-  )
+  await seedQuestion('q-hr-communication', hrStage.id, 'Communication Skills', 1, standardOptions('q-hr-communication'))
+  await seedQuestion('q-hr-professionalism', hrStage.id, 'Professionalism', 2, standardOptions('q-hr-professionalism'))
+  await seedQuestion('q-hr-cultural-fit', hrStage.id, 'Cultural Fit', 3, standardOptions('q-hr-cultural-fit'))
 
   // Technical Interview questions
-  await seedQuestion(
-    'q-tech-knowledge',
-    techStage.id,
-    'Technical Knowledge',
-    1,
-    standardOptions('q-tech-knowledge')
-  )
-  await seedQuestion(
-    'q-tech-problem-solving',
-    techStage.id,
-    'Problem Solving',
-    2,
-    standardOptions('q-tech-problem-solving')
-  )
+  await seedQuestion('q-tech-knowledge', techStage.id, 'Technical Knowledge', 1, standardOptions('q-tech-knowledge'))
+  await seedQuestion('q-tech-problem-solving', techStage.id, 'Problem Solving', 2, standardOptions('q-tech-problem-solving'))
 
   // Note: "Hire this candidate?" is built into the final stage UI, not a regular question
 

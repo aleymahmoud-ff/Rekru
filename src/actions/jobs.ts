@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 import { createJobSchema, updateJobSchema, linkJobQuestionsSchema } from '@/lib/validations/job'
+import { orgPath } from '@/lib/org'
 
 type ActionResult = { success: boolean; error?: string; id?: string }
 
@@ -26,10 +27,11 @@ export async function createJob(_prevState: ActionResult, formData: FormData): P
       title: parsed.data.title,
       description: parsed.data.description || null,
       createdById: user.id,
+      orgId: user.orgId,
     },
   })
 
-  revalidatePath('/jobs')
+  revalidatePath(orgPath(user.orgSlug, '/jobs'))
   return { success: true, id: job.id }
 }
 
@@ -41,10 +43,10 @@ export async function updateJob(data: unknown): Promise<ActionResult> {
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' }
 
   const { id, ...updates } = parsed.data
-  await prisma.job.update({ where: { id }, data: updates })
+  await prisma.job.update({ where: { id, orgId: user.orgId }, data: updates })
 
-  revalidatePath('/jobs')
-  revalidatePath(`/jobs/${id}`)
+  revalidatePath(orgPath(user.orgSlug, '/jobs'))
+  revalidatePath(orgPath(user.orgSlug, `/jobs/${id}`))
   return { success: true, id }
 }
 
@@ -52,11 +54,15 @@ export async function deleteJob(jobId: string): Promise<ActionResult> {
   const user = await getCurrentUser()
   if (!user) return { success: false, error: 'Not authenticated' }
 
+  // Verify job belongs to the user's org before deleting
+  const job = await prisma.job.findUnique({ where: { id: jobId, orgId: user.orgId }, select: { id: true } })
+  if (!job) return { success: false, error: 'Job not found' }
+
   const count = await prisma.jobCandidate.count({ where: { jobId } })
   if (count > 0) return { success: false, error: `Cannot delete: ${count} candidate${count !== 1 ? 's' : ''} are linked to this job` }
 
   await prisma.job.delete({ where: { id: jobId } })
-  revalidatePath('/jobs')
+  revalidatePath(orgPath(user.orgSlug, '/jobs'))
   return { success: true }
 }
 
@@ -69,6 +75,10 @@ export async function linkJobQuestions(data: unknown): Promise<ActionResult> {
 
   const { jobId, questionIds } = parsed.data
 
+  // Verify job belongs to the user's org before linking questions
+  const job = await prisma.job.findUnique({ where: { id: jobId, orgId: user.orgId }, select: { id: true } })
+  if (!job) return { success: false, error: 'Job not found' }
+
   // Delete existing links for this job, then insert selected ones
   await prisma.$transaction([
     prisma.jobQuestion.deleteMany({ where: { jobId } }),
@@ -80,7 +90,7 @@ export async function linkJobQuestions(data: unknown): Promise<ActionResult> {
       : []),
   ])
 
-  revalidatePath(`/jobs/${jobId}`)
+  revalidatePath(orgPath(user.orgSlug, `/jobs/${jobId}`))
   return { success: true }
 }
 
@@ -88,7 +98,7 @@ export async function toggleJobStatus(jobId: string): Promise<ActionResult> {
   const user = await getCurrentUser()
   if (!user) return { success: false, error: 'Not authenticated' }
 
-  const job = await prisma.job.findUnique({ where: { id: jobId }, select: { status: true } })
+  const job = await prisma.job.findUnique({ where: { id: jobId, orgId: user.orgId }, select: { status: true } })
   if (!job) return { success: false, error: 'Job not found' }
 
   await prisma.job.update({
@@ -96,8 +106,8 @@ export async function toggleJobStatus(jobId: string): Promise<ActionResult> {
     data: { status: job.status === 'open' ? 'closed' : 'open' },
   })
 
-  revalidatePath('/jobs')
-  revalidatePath(`/jobs/${jobId}`)
+  revalidatePath(orgPath(user.orgSlug, '/jobs'))
+  revalidatePath(orgPath(user.orgSlug, `/jobs/${jobId}`))
   return { success: true }
 }
 
@@ -105,7 +115,7 @@ export async function getJobs(status?: 'open' | 'closed') {
   const user = await getCurrentUser()
   if (!user) return []
 
-  const where: Record<string, unknown> = status ? { status } : {}
+  const where: Record<string, unknown> = status ? { status, orgId: user.orgId } : { orgId: user.orgId }
   if (user.role !== 'admin') {
     where.assignments = { some: { userId: user.id } }
   }
@@ -137,7 +147,7 @@ export async function getJobWithCandidates(jobId: string) {
   }
 
   return prisma.job.findUnique({
-    where: { id: jobId },
+    where: { id: jobId, orgId: user.orgId },
     include: {
       createdBy: { select: { fullName: true } },
       jobCandidates: {
