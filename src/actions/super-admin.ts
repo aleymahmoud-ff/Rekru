@@ -112,6 +112,81 @@ export async function getOrganizationDetail(orgId: string): Promise<{
   }
 }
 
+export async function createOrganization(
+  _prevState: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const { error } = await requireSuperAdmin()
+  if (error) return { success: false, error }
+
+  const orgName = (formData.get('orgName') as string)?.trim()
+  const adminName = (formData.get('adminName') as string)?.trim()
+  const adminEmail = (formData.get('adminEmail') as string)?.trim()
+  const adminPassword = (formData.get('adminPassword') as string)?.trim()
+
+  if (!orgName || orgName.length < 2) return { success: false, error: 'Organization name is required (min 2 chars)' }
+  if (!adminName) return { success: false, error: 'Admin name is required' }
+  if (!adminEmail) return { success: false, error: 'Admin email is required' }
+  if (!adminPassword || adminPassword.length < 6) return { success: false, error: 'Password must be at least 6 characters' }
+
+  // Generate slug
+  const slug = orgName
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+
+  if (!slug) return { success: false, error: 'Could not generate a valid slug from org name' }
+
+  // Check slug uniqueness
+  const existing = await prisma.organization.findUnique({ where: { slug } })
+  if (existing) return { success: false, error: `An organization with slug "${slug}" already exists` }
+
+  const bcrypt = (await import('bcryptjs')).default
+  const passwordHash = await bcrypt.hash(adminPassword, 12)
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const org = await tx.organization.create({
+        data: { name: orgName, slug },
+      })
+
+      await tx.user.create({
+        data: {
+          orgId: org.id,
+          fullName: adminName,
+          email: adminEmail,
+          passwordHash,
+          role: 'admin',
+          status: 'active',
+        },
+      })
+
+      // Create default app settings
+      await tx.appSettings.create({
+        data: { orgId: org.id },
+      })
+
+      // Create default final interview stage
+      await tx.interviewStage.create({
+        data: {
+          orgId: org.id,
+          name: 'Final Interview',
+          sortOrder: 1,
+          isActive: true,
+          isFinal: true,
+        },
+      })
+    })
+
+    return { success: true }
+  } catch {
+    return { success: false, error: 'Failed to create organization. The admin email may already be in use.' }
+  }
+}
+
 export async function deleteOrganization(orgId: string): Promise<ActionResult> {
   const { error } = await requireSuperAdmin()
   if (error) return { success: false, error }

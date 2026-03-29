@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { getAllOrganizations } from '@/actions/super-admin'
 import { PageHeader } from '@/components/shared/page-header'
-import { Building2 } from 'lucide-react'
+import { Building2, Plus } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'All Organizations — Rekru Super Admin',
@@ -16,6 +16,16 @@ export default async function SuperOrgsPage() {
       <PageHeader
         title="All Organizations"
         description={`${orgs.length} organization${orgs.length !== 1 ? 's' : ''} registered on the platform`}
+        action={
+          <Link
+            href="/super/orgs/new"
+            className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-colors hover:opacity-90"
+            style={{ backgroundColor: '#1e3a5f', fontFamily: 'var(--font-body)' }}
+          >
+            <Plus className="h-4 w-4" />
+            New Organization
+          </Link>
+        }
       />
 
       {orgs.length === 0 ? (
