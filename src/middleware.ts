@@ -4,22 +4,22 @@ const PUBLIC_PATHS = ['/login', '/register']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const sessionCookie = request.cookies.get('rekru-session')
 
   // Allow public routes through without any session check
   if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
     return NextResponse.next()
   }
 
-  // Redirect root to login (or dashboard if session exists — handled by root page)
+  // Root path: redirect to /super if logged in, /login if not
   if (pathname === '/') {
-    return NextResponse.next()
+    if (sessionCookie?.value) {
+      return NextResponse.redirect(new URL('/super', request.url))
+    }
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Check for the session cookie existence (iron-session stores it as "rekru-session").
-  // We only check if the cookie exists here — full validation (user existence, status,
-  // org membership) happens in the layout via getOrgContext().
-  const sessionCookie = request.cookies.get('rekru-session')
-
+  // All other paths require a session
   if (!sessionCookie?.value) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('from', pathname)
