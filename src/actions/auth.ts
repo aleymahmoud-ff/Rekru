@@ -109,6 +109,7 @@ export async function login(_prevState: ActionResult, formData: FormData): Promi
       passwordHash: true,
       status: true,
       orgId: true,
+      isSuperAdmin: true,
       organization: { select: { slug: true } },
     },
   })
@@ -136,6 +137,7 @@ export async function login(_prevState: ActionResult, formData: FormData): Promi
   session.userId = user.id
   session.orgId = user.orgId
   session.orgSlug = user.organization.slug
+  session.isSuperAdmin = user.isSuperAdmin
   await session.save()
 
   redirect(`/org/${user.organization.slug}/dashboard`)

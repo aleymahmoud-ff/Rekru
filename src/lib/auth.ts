@@ -44,6 +44,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
       role: true,
       status: true,
       orgId: true,
+      isSuperAdmin: true,
       organization: {
         select: { slug: true },
       },
@@ -67,5 +68,6 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     status: user.status,
     orgId: user.orgId,
     orgSlug: user.organization.slug,
+    isSuperAdmin: user.isSuperAdmin,
   }
 }

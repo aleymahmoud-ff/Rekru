@@ -62,6 +62,9 @@
 |------|-----------|---------|------------|
 | `<Sidebar>` | `src/components/layout/sidebar.tsx` | Fixed left nav with role-aware settings section and logout. Props: `user: AuthUser` | Yoki |
 | `<PageHeader>` | `src/components/shared/page-header.tsx` | Reusable page title/description/action bar. Props: `title`, `description?`, `action?` | Yoki |
+| `<SuperSidebar>` | `src/components/super/super-sidebar.tsx` | Dark sidebar for the super admin panel. Links to /super and /super/orgs plus back-to-org. Props: `user: AuthUser` | Yoki |
+| `<DeleteOrgButton>` | `src/components/super/delete-org-button.tsx` | Confirmation modal + delete action for an organization. Props: `orgId`, `orgName` | Yoki |
+| `<ToggleSuperAdminButton>` | `src/components/super/toggle-super-admin-button.tsx` | Inline button to grant/revoke super admin on a user. Props: `userId`, `isSuperAdmin`, `isCurrentUser` | Yoki |
 
 ---
 
@@ -70,6 +73,19 @@
 | Name | File Path | Purpose | Created By |
 |------|-----------|---------|------------|
 | `getPipelineAnalytics(jobId?)` | `src/actions/analytics.ts` | Returns funnel stats, job performance, rejection drivers, and summary counts — optionally scoped to a single job. Admin-gated at page level. | Nabil |
+
+---
+
+## Super Admin
+
+| Name | File Path | Purpose | Created By |
+|------|-----------|---------|------------|
+| `requireSuperAdmin()` | `src/lib/super-admin.ts` | Guards super admin routes — returns `{ error, user }`. Returns error if not authenticated or not isSuperAdmin. | Yoki |
+| `getSuperAdminStats()` | `src/actions/super-admin.ts` | Platform-level counts: orgs, users, candidates, jobs, interviews. Returns null if not super admin. | Yoki |
+| `getAllOrganizations()` | `src/actions/super-admin.ts` | All orgs with _count of users/jobs/candidates, ordered by createdAt desc. Returns [] if not super admin. | Yoki |
+| `getOrganizationDetail(orgId)` | `src/actions/super-admin.ts` | Single org with users list and jobs/candidates/interviews counts. Returns null if not found or not super admin. | Yoki |
+| `deleteOrganization(orgId)` | `src/actions/super-admin.ts` | Deletes org and ALL related data in a transaction (cascade order). Returns ActionResult. | Yoki |
+| `toggleSuperAdmin(userId)` | `src/actions/super-admin.ts` | Toggles isSuperAdmin on a user. Cannot un-super yourself. Returns ActionResult. | Yoki |
 
 ---
 

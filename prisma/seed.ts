@@ -10,12 +10,12 @@ async function main() {
   // 1. Default organization
   // ---------------------------------------------------------------------------
   const org = await prisma.organization.upsert({
-    where: { slug: 'default' },
+    where: { slug: 'wander' },
     update: {},
     create: {
       id: 'org-default',
-      name: 'Default Organization',
-      slug: 'default',
+      name: 'Wander',
+      slug: 'wander',
     },
   })
 
@@ -36,6 +36,7 @@ async function main() {
       role: 'admin',
       status: 'active',
       orgId: org.id,
+      isSuperAdmin: true,
     },
   })
 
