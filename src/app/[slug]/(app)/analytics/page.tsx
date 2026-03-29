@@ -22,10 +22,10 @@ export default async function AnalyticsPage({ searchParams }: Props) {
     searchParams,
   ])
 
-  if (!user || user.role !== 'admin') redirect(`/org/${user?.orgSlug ?? 'default'}/dashboard`)
+  if (!user || user.role !== 'admin') redirect(`/${user?.orgSlug ?? 'wander'}/dashboard`)
 
   const data = await getPipelineAnalytics(jobId)
-  if (!data) redirect(`/org/${user.orgSlug}/dashboard`)
+  if (!data) redirect(`/${user.orgSlug}/dashboard`)
 
   return (
     <div>

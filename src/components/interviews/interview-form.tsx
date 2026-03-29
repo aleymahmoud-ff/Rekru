@@ -107,7 +107,7 @@ export function InterviewForm({
 
       if (result.success) {
         const fallback = orgSlug
-          ? `/org/${orgSlug}/interviews/${stageId}`
+          ? `/${orgSlug}/interviews/${stageId}`
           : `/interviews/${stageId}`
         router.push(redirectTo ?? fallback)
       } else {

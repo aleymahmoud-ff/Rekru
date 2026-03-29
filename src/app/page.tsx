@@ -4,9 +4,13 @@ import { getCurrentUser } from '@/lib/auth'
 export default async function RootPage() {
   const user = await getCurrentUser()
 
-  if (user) {
-    redirect(`/org/${user.orgSlug}/dashboard`)
+  if (!user) {
+    redirect('/login')
   }
 
-  redirect('/login')
+  if (user.isSuperAdmin) {
+    redirect('/super')
+  }
+
+  redirect(`/${user.orgSlug}/dashboard`)
 }

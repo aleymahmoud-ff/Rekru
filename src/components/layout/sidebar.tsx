@@ -30,23 +30,23 @@ interface NavItem {
 
 function buildMainNav(orgSlug: string): NavItem[] {
   return [
-    { label: 'Dashboard', href: `/org/${orgSlug}/dashboard`, icon: LayoutDashboard },
-    { label: 'Jobs', href: `/org/${orgSlug}/jobs`, icon: Briefcase },
-    { label: 'Interviews', href: `/org/${orgSlug}/interviews`, icon: ClipboardList },
+    { label: 'Dashboard', href: `/${orgSlug}/dashboard`, icon: LayoutDashboard },
+    { label: 'Jobs', href: `/${orgSlug}/jobs`, icon: Briefcase },
+    { label: 'Interviews', href: `/${orgSlug}/interviews`, icon: ClipboardList },
   ]
 }
 
 function buildAdminNav(orgSlug: string): NavItem[] {
   return [
-    { label: 'Analytics', href: `/org/${orgSlug}/analytics`, icon: BarChart2 },
+    { label: 'Analytics', href: `/${orgSlug}/analytics`, icon: BarChart2 },
   ]
 }
 
 function buildSettingsNav(orgSlug: string): NavItem[] {
   return [
-    { label: 'Interview Stages', href: `/org/${orgSlug}/settings/stages`, icon: Settings },
-    { label: 'User Management', href: `/org/${orgSlug}/settings/users`, icon: Users },
-    { label: 'General', href: `/org/${orgSlug}/settings/general`, icon: Palette },
+    { label: 'Interview Stages', href: `/${orgSlug}/settings/stages`, icon: Settings },
+    { label: 'User Management', href: `/${orgSlug}/settings/users`, icon: Users },
+    { label: 'General', href: `/${orgSlug}/settings/general`, icon: Palette },
   ]
 }
 
@@ -87,7 +87,7 @@ export function Sidebar({ user, orgSlug }: SidebarProps) {
   const mainNav = buildMainNav(orgSlug)
   const adminNav = buildAdminNav(orgSlug)
   const settingsNav = buildSettingsNav(orgSlug)
-  const accountHref = `/org/${orgSlug}/settings/account`
+  const accountHref = `/${orgSlug}/settings/account`
 
   return (
     <aside

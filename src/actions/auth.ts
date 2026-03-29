@@ -81,7 +81,7 @@ export async function register(_prevState: ActionResult, formData: FormData): Pr
   session.orgSlug = createdOrgSlug
   await session.save()
 
-  redirect(`/org/${createdOrgSlug}/dashboard`)
+  redirect(`/${createdOrgSlug}/dashboard`)
 }
 
 /**
@@ -140,7 +140,7 @@ export async function login(_prevState: ActionResult, formData: FormData): Promi
   session.isSuperAdmin = user.isSuperAdmin
   await session.save()
 
-  redirect(`/org/${user.organization.slug}/dashboard`)
+  redirect(`/${user.organization.slug}/dashboard`)
 }
 
 /**

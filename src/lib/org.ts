@@ -14,8 +14,8 @@ export async function getOrgContext(slug: string) {
 
 /**
  * Builds an org-scoped path for use in redirects and revalidation tags.
- * Example: orgPath('acme', '/dashboard') → '/org/acme/dashboard'
+ * Example: orgPath('acme', '/dashboard') → '/acme/dashboard'
  */
 export function orgPath(slug: string, path: string): string {
-  return `/org/${slug}${path}`
+  return `/${slug}${path}`
 }

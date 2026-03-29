@@ -91,7 +91,7 @@ export function SuperSidebar({ user }: SuperSidebarProps) {
 
         {/* Back to org */}
         <Link
-          href={`/org/${user.orgSlug}/dashboard`}
+          href={`/${user.orgSlug}/dashboard`}
           className={cn(
             'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
             'border-l-2 border-l-transparent text-white/50 hover:text-white/80 hover:bg-white/5',
