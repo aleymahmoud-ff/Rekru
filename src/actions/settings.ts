@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
-import { orgPath } from '@/lib/org'
+import { orgPath, isStageInOrg, isQuestionInOrg, isOptionInOrg } from '@/lib/org'
 import bcrypt from 'bcryptjs'
 import {
   createStageSchema,
@@ -157,26 +157,42 @@ export async function createQuestion(_prevState: ActionResult, formData: FormDat
   })
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' }
 
+  // Verify the target stage belongs to the caller's org
+  if (!(await isStageInOrg(parsed.data.stageId, user.orgId))) {
+    return { success: false, error: 'Stage not found' }
+  }
+
   await prisma.stageQuestion.create({ data: parsed.data })
   revalidatePath(orgPath(user.orgSlug, `/settings/stages/${parsed.data.stageId}/questions`))
   return { success: true }
 }
 
 export async function updateQuestion(data: unknown): Promise<ActionResult> {
-  const { error } = await requireAdmin()
+  const { error, user } = await requireAdmin()
   if (error) return { success: false, error }
 
   const parsed = updateQuestionSchema.safeParse(data)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' }
 
   const { id, ...updates } = parsed.data
+
+  // Verify the question belongs to the caller's org before updating
+  if (!(await isQuestionInOrg(id, user.orgId))) {
+    return { success: false, error: 'Question not found' }
+  }
+
   await prisma.stageQuestion.update({ where: { id }, data: updates })
   return { success: true }
 }
 
 export async function deleteQuestion(questionId: string): Promise<ActionResult> {
-  const { error } = await requireAdmin()
+  const { error, user } = await requireAdmin()
   if (error) return { success: false, error }
+
+  // Verify the question belongs to the caller's org before deleting
+  if (!(await isQuestionInOrg(questionId, user.orgId))) {
+    return { success: false, error: 'Question not found' }
+  }
 
   await prisma.stageQuestion.delete({ where: { id: questionId } })
   return { success: true }
@@ -225,7 +241,7 @@ export async function getJobSpecificQuestions() {
 // ---------- Options ----------
 
 export async function createOption(_prevState: ActionResult, formData: FormData): Promise<ActionResult> {
-  const { error } = await requireAdmin()
+  const { error, user } = await requireAdmin()
   if (error) return { success: false, error }
 
   const parsed = createOptionSchema.safeParse({
@@ -236,13 +252,23 @@ export async function createOption(_prevState: ActionResult, formData: FormData)
   })
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' }
 
+  // Verify the parent question belongs to the caller's org
+  if (!(await isQuestionInOrg(parsed.data.questionId, user.orgId))) {
+    return { success: false, error: 'Question not found' }
+  }
+
   await prisma.questionOption.create({ data: parsed.data })
   return { success: true }
 }
 
 export async function deleteOption(optionId: string): Promise<ActionResult> {
-  const { error } = await requireAdmin()
+  const { error, user } = await requireAdmin()
   if (error) return { success: false, error }
+
+  // Verify the option belongs to the caller's org before deleting
+  if (!(await isOptionInOrg(optionId, user.orgId))) {
+    return { success: false, error: 'Option not found' }
+  }
 
   await prisma.questionOption.delete({ where: { id: optionId } })
   return { success: true }
@@ -374,6 +400,13 @@ export async function getActiveStagesBasic() {
 }
 
 export async function getUserAccess(userId: string) {
+  const user = await getCurrentUser()
+  if (!user) return { stageIds: [] }
+
+  // Verify the target user belongs to the caller's org before reading access
+  const target = await prisma.user.findUnique({ where: { id: userId }, select: { orgId: true } })
+  if (!target || target.orgId !== user.orgId) return { stageIds: [] }
+
   const stageRows = await prisma.userStageAccess.findMany({ where: { userId }, select: { stageId: true } })
   return { stageIds: stageRows.map((r) => r.stageId) }
 }
@@ -403,6 +436,13 @@ export async function setUserAccess(data: unknown): Promise<ActionResult> {
 }
 
 export async function getJobAssignedUsers(jobId: string) {
+  const user = await getCurrentUser()
+  if (!user) return []
+
+  // Verify the job belongs to the caller's org before listing assignees
+  const job = await prisma.job.findUnique({ where: { id: jobId }, select: { orgId: true } })
+  if (!job || job.orgId !== user.orgId) return []
+
   const rows = await prisma.jobAssignment.findMany({
     where: { jobId },
     include: { user: { select: { id: true, fullName: true, email: true } } },

@@ -79,6 +79,16 @@ export async function linkJobQuestions(data: unknown): Promise<ActionResult> {
   const job = await prisma.job.findUnique({ where: { id: jobId, orgId: user.orgId }, select: { id: true } })
   if (!job) return { success: false, error: 'Job not found' }
 
+  // Verify every question belongs to the caller's org (via stage.orgId)
+  if (questionIds.length > 0) {
+    const validCount = await prisma.stageQuestion.count({
+      where: { id: { in: questionIds }, stage: { orgId: user.orgId } },
+    })
+    if (validCount !== questionIds.length) {
+      return { success: false, error: 'One or more questions are invalid' }
+    }
+  }
+
   // Delete existing links for this job, then insert selected ones
   await prisma.$transaction([
     prisma.jobQuestion.deleteMany({ where: { jobId } }),
