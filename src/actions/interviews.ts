@@ -42,6 +42,18 @@ export async function conductInterview(input: unknown): Promise<ActionResult> {
     })
     if (!existing) return { success: false, error: 'Interview not found' }
 
+    // The interview must belong to the org-verified job candidate. Without this,
+    // a caller could pass their own jobCandidateId with another org's interviewId
+    // and overwrite that interview.
+    if (existing.jobCandidateId !== jobCandidateId) {
+      return { success: false, error: 'Interview not found' }
+    }
+
+    // Answers must reference questions/options in scope for this stage + job
+    if (!(await answersAreValid(existing.stageId, jobCandidate.jobId, answers))) {
+      return { success: false, error: 'Invalid answer selection' }
+    }
+
     // Delete old answers and create new ones, update interview
     await prisma.$transaction(async (tx) => {
       await tx.interviewAnswer.deleteMany({ where: { interviewId } })
@@ -77,6 +89,11 @@ export async function conductInterview(input: unknown): Promise<ActionResult> {
   // --- NEW INTERVIEW MODE ---
   if (jobCandidate.status !== 'active') return { success: false, error: 'Candidate is not active in the pipeline' }
   if (jobCandidate.currentStageId !== stageId) return { success: false, error: 'Candidate is not at this stage' }
+
+  // Answers must reference questions/options in scope for this stage + job
+  if (!(await answersAreValid(stageId, jobCandidate.jobId, answers))) {
+    return { success: false, error: 'Invalid answer selection' }
+  }
 
   // Check for existing interview at this stage
   const existingInterview = await prisma.interview.findUnique({
@@ -178,6 +195,22 @@ export async function getCandidatesForStage(stageId: string) {
     },
     orderBy: { createdAt: 'asc' },
   })
+}
+
+/**
+ * Verifies every submitted answer references a question that is in scope for
+ * this stage+job and an option that belongs to that question. Because answers
+ * reference question/option IDs straight from the client, this prevents storing
+ * answers that point at another org's questions or options.
+ */
+async function answersAreValid(
+  stageId: string,
+  jobId: string,
+  answers: { questionId: string; optionId: string }[]
+): Promise<boolean> {
+  const scoped = await getScopedQuestions(stageId, jobId)
+  const optionsByQuestion = new Map(scoped.map((q) => [q.id, new Set(q.options.map((o) => o.id))]))
+  return answers.every((a) => optionsByQuestion.get(a.questionId)?.has(a.optionId) ?? false)
 }
 
 async function getScopedQuestions(stageId: string, jobId: string) {
