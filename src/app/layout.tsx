@@ -19,6 +19,13 @@ export const metadata: Metadata = {
   description: "Recruitment Cycle Management",
 };
 
+// Render every route dynamically. The CDN (LightCDN) caches statically
+// prerendered pages for a year and does not refresh them on deploy, which left
+// stale HTML referencing old Server Action IDs (causing "An unexpected response
+// was received from the server" after each deploy). Dynamic rendering means no
+// statically cached HTML can go stale.
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children,
 }: Readonly<{
