@@ -5,14 +5,15 @@ interface CandidateProfileCardProps {
     fullName: string
     email: string
     phone: string
-    cvLink: string | null
     createdAt: Date
   }
   jobTitle: string
   stageName: string
+  /** Resolved signed/external URL for the candidate's CV, or null. */
+  cvUrl: string | null
 }
 
-export function CandidateProfileCard({ candidate, jobTitle, stageName }: CandidateProfileCardProps) {
+export function CandidateProfileCard({ candidate, jobTitle, stageName, cvUrl }: CandidateProfileCardProps) {
   return (
     <div
       className="rounded-xl border bg-white p-5 space-y-5"
@@ -88,10 +89,10 @@ export function CandidateProfileCard({ candidate, jobTitle, stageName }: Candida
           <span>{new Date(candidate.createdAt).toLocaleDateString()}</span>
         </ProfileRow>
 
-        {candidate.cvLink && (
+        {cvUrl && (
           <ProfileRow icon={<FileText className="h-4 w-4" />} label="CV">
             <a
-              href={candidate.cvLink}
+              href={cvUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 hover:underline"

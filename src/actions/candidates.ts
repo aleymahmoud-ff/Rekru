@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 import { addCandidateSchema } from '@/lib/validations/candidate'
 import { orgPath } from '@/lib/org'
+import { isS3Configured, isS3Key, uploadCv, deleteCv, validateCvFile } from '@/lib/s3'
 
 type ActionResult = { success: boolean; error?: string }
 
@@ -20,7 +21,6 @@ export async function addCandidateToJob(
     fullName: formData.get('fullName'),
     email: formData.get('email'),
     phone: formData.get('phone'),
-    cvLink: formData.get('cvLink') || undefined,
   }
 
   const parsed = addCandidateSchema.safeParse(raw)
@@ -28,7 +28,16 @@ export async function addCandidateToJob(
     return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' }
   }
 
-  const { fullName, email, phone, cvLink } = parsed.data
+  const { fullName, email, phone } = parsed.data
+
+  // CV is an optional file upload. Validate early, before any DB writes.
+  const cvField = formData.get('cv')
+  const cvFile = cvField instanceof File && cvField.size > 0 ? cvField : null
+  if (cvFile) {
+    if (!isS3Configured()) return { success: false, error: 'CV storage is not configured' }
+    const fileError = validateCvFile(cvFile)
+    if (fileError) return { success: false, error: fileError }
+  }
 
   // Check job exists, is open, and belongs to the user's org
   const job = await prisma.job.findUnique({ where: { id: jobId, orgId: user.orgId }, select: { status: true } })
@@ -52,7 +61,7 @@ export async function addCandidateToJob(
 
   if (!candidate) {
     candidate = await prisma.candidate.create({
-      data: { fullName, email, phone, cvLink: cvLink || null, orgId: user.orgId },
+      data: { fullName, email, phone, orgId: user.orgId },
     })
   }
 
@@ -73,8 +82,67 @@ export async function addCandidateToJob(
     },
   })
 
+  // Upload the CV last so a storage hiccup doesn't block adding the candidate.
+  if (cvFile) {
+    try {
+      const key = await uploadCv(user.orgId, candidate.id, cvFile)
+      await prisma.candidate.update({ where: { id: candidate.id }, data: { cvLink: key } })
+    } catch {
+      return { success: false, error: 'Candidate added, but the CV upload failed. Try uploading it again from the candidate.' }
+    }
+  }
+
   revalidatePath(orgPath(user.orgSlug, `/jobs/${jobId}`))
   revalidatePath(orgPath(user.orgSlug, '/dashboard'))
+  return { success: true }
+}
+
+export async function uploadCandidateCv(
+  candidateId: string,
+  jobId: string,
+  _prevState: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const user = await getCurrentUser()
+  if (!user) return { success: false, error: 'Not authenticated' }
+
+  if (!isS3Configured()) return { success: false, error: 'CV storage is not configured' }
+
+  const cvField = formData.get('cv')
+  const cvFile = cvField instanceof File && cvField.size > 0 ? cvField : null
+  if (!cvFile) return { success: false, error: 'No file selected' }
+
+  const fileError = validateCvFile(cvFile)
+  if (fileError) return { success: false, error: fileError }
+
+  // Verify the candidate belongs to the caller's org before touching its CV
+  const candidate = await prisma.candidate.findUnique({
+    where: { id: candidateId },
+    select: { orgId: true, cvLink: true },
+  })
+  if (!candidate || candidate.orgId !== user.orgId) {
+    return { success: false, error: 'Candidate not found' }
+  }
+
+  let key: string
+  try {
+    key = await uploadCv(user.orgId, candidateId, cvFile)
+  } catch {
+    return { success: false, error: 'CV upload failed. Please try again.' }
+  }
+
+  await prisma.candidate.update({ where: { id: candidateId }, data: { cvLink: key } })
+
+  // Best-effort cleanup of the previous object (ignore failures)
+  if (isS3Key(candidate.cvLink) && candidate.cvLink !== key) {
+    try {
+      await deleteCv(candidate.cvLink)
+    } catch {
+      // orphaned object is harmless; don't fail the request
+    }
+  }
+
+  revalidatePath(orgPath(user.orgSlug, `/jobs/${jobId}`))
   return { success: true }
 }
 

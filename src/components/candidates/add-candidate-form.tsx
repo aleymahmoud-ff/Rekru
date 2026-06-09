@@ -36,10 +36,17 @@ export function AddCandidateForm({ jobId }: { jobId: string }) {
         <Input id="phone" name="phone" placeholder="+20 xxx xxx xxxx" required style={{ fontFamily: 'var(--font-body)' }} />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="cvLink" style={{ fontFamily: 'var(--font-body)' }}>
-          CV Link <span className="text-[#9c9690] font-normal">(optional)</span>
+        <Label htmlFor="cv" style={{ fontFamily: 'var(--font-body)' }}>
+          CV <span className="text-[#9c9690] font-normal">(optional · PDF or Word, max 8 MB)</span>
         </Label>
-        <Input id="cvLink" name="cvLink" type="url" placeholder="https://drive.google.com/..." style={{ fontFamily: 'var(--font-body)' }} />
+        <Input
+          id="cv"
+          name="cv"
+          type="file"
+          accept=".pdf,.doc,.docx"
+          className="file:mr-3 file:rounded-md file:border-0 file:bg-[#f0eeeb] file:px-3 file:py-1 file:text-sm file:text-[#1e3a5f] hover:file:bg-[#e8e5e0]"
+          style={{ fontFamily: 'var(--font-body)' }}
+        />
       </div>
       {state.error && (
         <p className="text-sm text-red-600" style={{ fontFamily: 'var(--font-body)' }}>{state.error}</p>

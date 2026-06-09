@@ -6,6 +6,7 @@ import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 import { InterviewForm } from '@/components/interviews/interview-form'
 import { CandidateProfileCard } from '@/components/interviews/candidate-profile-card'
+import { resolveCvUrl } from '@/lib/s3'
 
 type Props = { params: Promise<{ stageId: string; jobCandidateId: string }> }
 
@@ -47,6 +48,10 @@ export default async function ConductInterviewPage({ params }: Props) {
   if (jobCandidate.status !== 'active') notFound()
 
   const isFinalStage = stage.isFinal
+  const cvUrl = await resolveCvUrl(
+    jobCandidate.candidate.cvLink,
+    `${jobCandidate.candidate.fullName} - CV`
+  )
 
   // Prepare initial data from existing on_hold interview
   const initialData = existingInterview
@@ -92,6 +97,7 @@ export default async function ConductInterviewPage({ params }: Props) {
               candidate={jobCandidate.candidate}
               jobTitle={jobCandidate.job.title}
               stageName={stage.name}
+              cvUrl={cvUrl}
             />
           </div>
         </div>

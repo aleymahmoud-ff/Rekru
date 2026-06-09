@@ -10,8 +10,10 @@ import { DeleteJobButton } from '@/components/jobs/delete-job-button'
 import { RemoveCandidateButton } from '@/components/jobs/remove-candidate-button'
 import { JobPerformancePanel } from '@/components/jobs/job-performance-panel'
 import { ManageTeamDialog } from '@/components/jobs/manage-team-dialog'
+import { CandidateCvControl } from '@/components/candidates/candidate-cv-control'
 import { getAllUsers } from '@/actions/settings'
 import { getCurrentUser } from '@/lib/auth'
+import { isS3Configured, resolveCvUrl } from '@/lib/s3'
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -45,6 +47,18 @@ export default async function JobDetailPage({ params }: Props) {
   if (!job) notFound()
 
   const assignableUsers = allUsers.filter((u) => u.role !== 'admin' && u.status === 'active')
+
+  // Resolve CV view URLs (signed for S3 keys) for each candidate up front.
+  const uploadEnabled = isS3Configured()
+  const cvUrls = new Map<string, string | null>()
+  await Promise.all(
+    job.jobCandidates.map(async (jc) => {
+      cvUrls.set(
+        jc.candidate.id,
+        await resolveCvUrl(jc.candidate.cvLink, `${jc.candidate.fullName} - CV`)
+      )
+    })
+  )
 
   return (
     <div>
@@ -126,6 +140,12 @@ export default async function JobDetailPage({ params }: Props) {
                     </p>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
+                    <CandidateCvControl
+                      candidateId={jc.candidate.id}
+                      jobId={job.id}
+                      cvUrl={cvUrls.get(jc.candidate.id) ?? null}
+                      uploadEnabled={uploadEnabled}
+                    />
                     <p className="text-xs" style={{ fontFamily: 'var(--font-body)', color: '#6b6560' }}>
                       {jc.currentStage?.name ?? (jc.status === 'hired' ? 'Completed' : '—')}
                     </p>

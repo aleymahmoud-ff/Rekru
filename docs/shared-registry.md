@@ -110,6 +110,7 @@
 | Name | File Path | Purpose | Created By |
 |------|-----------|---------|------------|
 | `sendEmail()` | `src/lib/integrations/email.ts` | Email abstraction layer (no-op in V1) | Omar |
+| `uploadCv()` / `getCvSignedUrl()` / `resolveCvUrl()` / `deleteCv()` / `isS3Configured()` / `isS3Key()` / `CV_ACCEPT` / `MAX_CV_BYTES` | `src/lib/s3.ts` | S3-compatible CV storage (Cranl Storage): upload, presigned view URLs, legacy-URL passthrough | Omar |
 
 ---
 
