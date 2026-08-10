@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
 
-// Root page: super admin → /super, tenant user → /{slug}/dashboard
+// Root page: signed-in users land on the dashboard, everyone else on /login.
 export default async function RootPage() {
   const user = await getCurrentUser()
 
@@ -9,9 +9,5 @@ export default async function RootPage() {
     redirect('/login')
   }
 
-  if (user.isSuperAdmin) {
-    redirect('/super')
-  }
-
-  redirect(`/${user.orgSlug}/dashboard`)
+  redirect('/dashboard')
 }

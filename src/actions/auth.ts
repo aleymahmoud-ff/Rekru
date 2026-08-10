@@ -5,18 +5,16 @@ import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/db'
 import { getSession } from '@/lib/auth'
 import { loginSchema, registerSchema } from '@/lib/validations/auth'
-import { slugifyOrgName } from '@/lib/validations/auth'
 
 type ActionResult = { success: boolean; error?: string }
 
 /**
- * Registers a new organization with its first admin user.
- * The user is created with status = "active" and role = "admin" since they
- * are bootstrapping their own org — no separate approval step is needed.
+ * Self-registers a new user. The account is created as pending with no role —
+ * an admin approves it and assigns a role from Settings → Users before the
+ * user can sign in.
  */
 export async function register(_prevState: ActionResult, formData: FormData): Promise<ActionResult> {
   const raw = {
-    orgName: formData.get('orgName'),
     fullName: formData.get('fullName'),
     email: formData.get('email'),
     password: formData.get('password'),
@@ -28,65 +26,28 @@ export async function register(_prevState: ActionResult, formData: FormData): Pr
     return { success: false, error: firstError }
   }
 
-  const { orgName, fullName, email, password } = parsed.data
+  const { fullName, email, password } = parsed.data
 
-  const orgSlug = slugifyOrgName(orgName)
-
-  // Check for slug collision before entering the transaction
-  const existingOrg = await prisma.organization.findUnique({
-    where: { slug: orgSlug },
-    select: { id: true },
-  })
-  if (existingOrg) {
-    return { success: false, error: 'An organization with that name already exists' }
+  const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } })
+  if (existing) {
+    return { success: false, error: 'An account with this email already exists' }
   }
 
   const passwordHash = await bcrypt.hash(password, 12)
 
-  let createdOrgId: string
-  let createdOrgSlug: string
-  let createdUserId: string
-
   try {
-    const result = await prisma.$transaction(async (tx) => {
-      const org = await tx.organization.create({
-        data: { name: orgName, slug: orgSlug },
-      })
-
-      const user = await tx.user.create({
-        data: {
-          orgId: org.id,
-          fullName,
-          email,
-          passwordHash,
-          role: 'admin',
-          status: 'active',
-        },
-      })
-
-      return { org, user }
+    await prisma.user.create({
+      data: { fullName, email, passwordHash, status: 'pending' },
     })
-
-    createdOrgId = result.org.id
-    createdOrgSlug = result.org.slug
-    createdUserId = result.user.id
   } catch {
     return { success: false, error: 'Registration failed. The email may already be in use.' }
   }
 
-  // Write session immediately so the user lands on their dashboard
-  const session = await getSession()
-  session.userId = createdUserId
-  session.orgId = createdOrgId
-  session.orgSlug = createdOrgSlug
-  await session.save()
-
-  redirect(`/${createdOrgSlug}/dashboard`)
+  return { success: true }
 }
 
 /**
  * Authenticates an existing, approved user and writes a session cookie.
- * Redirects to the user's org dashboard on success.
  */
 export async function login(_prevState: ActionResult, formData: FormData): Promise<ActionResult> {
   const raw = {
@@ -102,15 +63,12 @@ export async function login(_prevState: ActionResult, formData: FormData): Promi
 
   const { email, password } = parsed.data
 
-  const user = await prisma.user.findFirst({
+  const user = await prisma.user.findUnique({
     where: { email },
     select: {
       id: true,
       passwordHash: true,
       status: true,
-      orgId: true,
-      isSuperAdmin: true,
-      organization: { select: { slug: true } },
     },
   })
 
@@ -135,12 +93,9 @@ export async function login(_prevState: ActionResult, formData: FormData): Promi
 
   const session = await getSession()
   session.userId = user.id
-  session.orgId = user.orgId
-  session.orgSlug = user.organization.slug
-  session.isSuperAdmin = user.isSuperAdmin
   await session.save()
 
-  redirect(`/${user.organization.slug}/dashboard`)
+  redirect('/dashboard')
 }
 
 /**

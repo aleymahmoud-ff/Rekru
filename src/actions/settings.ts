@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
-import { orgPath, isStageInOrg, isQuestionInOrg, isOptionInOrg } from '@/lib/org'
+import { APP_SETTINGS_ID } from '@/lib/app-settings'
 import bcrypt from 'bcryptjs'
 import {
   createStageSchema,
@@ -32,7 +32,7 @@ async function requireAdmin() {
 // ---------- Stages ----------
 
 export async function createStage(_prevState: ActionResult, formData: FormData): Promise<ActionResult> {
-  const { error, user } = await requireAdmin()
+  const { error } = await requireAdmin()
   if (error) return { success: false, error }
 
   const parsed = createStageSchema.safeParse({
@@ -43,25 +43,25 @@ export async function createStage(_prevState: ActionResult, formData: FormData):
 
   // Insert before the final stage and bump the final stage's sortOrder
   const finalStage = await prisma.interviewStage.findFirst({
-    where: { isFinal: true, orgId: user.orgId },
+    where: { isFinal: true },
     select: { id: true, sortOrder: true },
   })
   if (finalStage) {
     const insertOrder = finalStage.sortOrder
     await prisma.$transaction([
       prisma.interviewStage.update({ where: { id: finalStage.id }, data: { sortOrder: insertOrder + 1 } }),
-      prisma.interviewStage.create({ data: { ...parsed.data, orgId: user.orgId, sortOrder: insertOrder } }),
+      prisma.interviewStage.create({ data: { ...parsed.data, sortOrder: insertOrder } }),
     ])
   } else {
-    await prisma.interviewStage.create({ data: { ...parsed.data, orgId: user.orgId } })
+    await prisma.interviewStage.create({ data: parsed.data })
   }
 
-  revalidatePath(orgPath(user.orgSlug, '/settings/stages'))
+  revalidatePath('/settings/stages')
   return { success: true }
 }
 
 export async function updateStage(data: unknown): Promise<ActionResult> {
-  const { error, user } = await requireAdmin()
+  const { error } = await requireAdmin()
   if (error) return { success: false, error }
 
   const parsed = updateStageSchema.safeParse(data)
@@ -69,9 +69,9 @@ export async function updateStage(data: unknown): Promise<ActionResult> {
 
   const { id, ...updates } = parsed.data
 
-  // Protect final stage from being deactivated or reordered — scope lookup to org
+  // Protect the final stage from being deactivated or reordered
   const stage = await prisma.interviewStage.findUnique({
-    where: { id, orgId: user.orgId },
+    where: { id },
     select: { isFinal: true },
   })
   if (!stage) return { success: false, error: 'Stage not found' }
@@ -81,17 +81,17 @@ export async function updateStage(data: unknown): Promise<ActionResult> {
   }
 
   await prisma.interviewStage.update({ where: { id }, data: updates })
-  revalidatePath(orgPath(user.orgSlug, '/settings/stages'))
+  revalidatePath('/settings/stages')
   return { success: true }
 }
 
 export async function deleteStage(stageId: string): Promise<ActionResult> {
-  const { error, user } = await requireAdmin()
+  const { error } = await requireAdmin()
   if (error) return { success: false, error }
 
-  // Protect final stage from deletion — scope lookup to org
+  // Protect the final stage from deletion
   const stage = await prisma.interviewStage.findUnique({
-    where: { id: stageId, orgId: user.orgId },
+    where: { id: stageId },
     select: { isFinal: true },
   })
   if (!stage) return { success: false, error: 'Stage not found' }
@@ -102,17 +102,17 @@ export async function deleteStage(stageId: string): Promise<ActionResult> {
   if (count > 0) return { success: false, error: `Cannot delete: ${count} candidate(s) are at this stage` }
 
   await prisma.interviewStage.delete({ where: { id: stageId } })
-  revalidatePath(orgPath(user.orgSlug, '/settings/stages'))
+  revalidatePath('/settings/stages')
   return { success: true }
 }
 
 export async function reorderStages(orderedIds: string[]): Promise<ActionResult> {
-  const { error, user } = await requireAdmin()
+  const { error } = await requireAdmin()
   if (error) return { success: false, error }
 
-  // Ensure the final stage stays last — scope lookup to org
+  // Ensure the final stage stays last
   const finalStage = await prisma.interviewStage.findFirst({
-    where: { isFinal: true, orgId: user.orgId },
+    where: { isFinal: true },
     select: { id: true },
   })
   if (finalStage) {
@@ -126,7 +126,7 @@ export async function reorderStages(orderedIds: string[]): Promise<ActionResult>
       prisma.interviewStage.update({ where: { id }, data: { sortOrder: index + 1 } })
     )
   )
-  revalidatePath(orgPath(user.orgSlug, '/settings/stages'))
+  revalidatePath('/settings/stages')
   return { success: true }
 }
 
@@ -135,7 +135,6 @@ export async function getStages() {
   if (!user) return []
 
   return prisma.interviewStage.findMany({
-    where: { orgId: user.orgId },
     orderBy: { sortOrder: 'asc' },
     include: {
       _count: { select: { questions: true, jobCandidates: true, interviews: true } },
@@ -146,7 +145,7 @@ export async function getStages() {
 // ---------- Questions ----------
 
 export async function createQuestion(_prevState: ActionResult, formData: FormData): Promise<ActionResult> {
-  const { error, user } = await requireAdmin()
+  const { error } = await requireAdmin()
   if (error) return { success: false, error }
 
   const parsed = createQuestionSchema.safeParse({
@@ -157,18 +156,19 @@ export async function createQuestion(_prevState: ActionResult, formData: FormDat
   })
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' }
 
-  // Verify the target stage belongs to the caller's org
-  if (!(await isStageInOrg(parsed.data.stageId, user.orgId))) {
-    return { success: false, error: 'Stage not found' }
-  }
+  const stage = await prisma.interviewStage.findUnique({
+    where: { id: parsed.data.stageId },
+    select: { id: true },
+  })
+  if (!stage) return { success: false, error: 'Stage not found' }
 
   await prisma.stageQuestion.create({ data: parsed.data })
-  revalidatePath(orgPath(user.orgSlug, `/settings/stages/${parsed.data.stageId}/questions`))
+  revalidatePath(`/settings/stages/${parsed.data.stageId}/questions`)
   return { success: true }
 }
 
 export async function updateQuestion(data: unknown): Promise<ActionResult> {
-  const { error, user } = await requireAdmin()
+  const { error } = await requireAdmin()
   if (error) return { success: false, error }
 
   const parsed = updateQuestionSchema.safeParse(data)
@@ -176,23 +176,19 @@ export async function updateQuestion(data: unknown): Promise<ActionResult> {
 
   const { id, ...updates } = parsed.data
 
-  // Verify the question belongs to the caller's org before updating
-  if (!(await isQuestionInOrg(id, user.orgId))) {
-    return { success: false, error: 'Question not found' }
-  }
+  const existing = await prisma.stageQuestion.findUnique({ where: { id }, select: { id: true } })
+  if (!existing) return { success: false, error: 'Question not found' }
 
   await prisma.stageQuestion.update({ where: { id }, data: updates })
   return { success: true }
 }
 
 export async function deleteQuestion(questionId: string): Promise<ActionResult> {
-  const { error, user } = await requireAdmin()
+  const { error } = await requireAdmin()
   if (error) return { success: false, error }
 
-  // Verify the question belongs to the caller's org before deleting
-  if (!(await isQuestionInOrg(questionId, user.orgId))) {
-    return { success: false, error: 'Question not found' }
-  }
+  const existing = await prisma.stageQuestion.findUnique({ where: { id: questionId }, select: { id: true } })
+  if (!existing) return { success: false, error: 'Question not found' }
 
   await prisma.stageQuestion.delete({ where: { id: questionId } })
   return { success: true }
@@ -203,7 +199,7 @@ export async function getStageWithQuestions(stageId: string) {
   if (!user) return null
 
   return prisma.interviewStage.findUnique({
-    where: { id: stageId, orgId: user.orgId },
+    where: { id: stageId },
     include: {
       questions: {
         orderBy: { sortOrder: 'asc' },
@@ -220,7 +216,7 @@ export async function getJobSpecificQuestions() {
   if (!user) return []
 
   const stages = await prisma.interviewStage.findMany({
-    where: { isActive: true, orgId: user.orgId },
+    where: { isActive: true },
     orderBy: { sortOrder: 'asc' },
     include: {
       questions: {
@@ -241,7 +237,7 @@ export async function getJobSpecificQuestions() {
 // ---------- Options ----------
 
 export async function createOption(_prevState: ActionResult, formData: FormData): Promise<ActionResult> {
-  const { error, user } = await requireAdmin()
+  const { error } = await requireAdmin()
   if (error) return { success: false, error }
 
   const parsed = createOptionSchema.safeParse({
@@ -252,23 +248,22 @@ export async function createOption(_prevState: ActionResult, formData: FormData)
   })
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' }
 
-  // Verify the parent question belongs to the caller's org
-  if (!(await isQuestionInOrg(parsed.data.questionId, user.orgId))) {
-    return { success: false, error: 'Question not found' }
-  }
+  const question = await prisma.stageQuestion.findUnique({
+    where: { id: parsed.data.questionId },
+    select: { id: true },
+  })
+  if (!question) return { success: false, error: 'Question not found' }
 
   await prisma.questionOption.create({ data: parsed.data })
   return { success: true }
 }
 
 export async function deleteOption(optionId: string): Promise<ActionResult> {
-  const { error, user } = await requireAdmin()
+  const { error } = await requireAdmin()
   if (error) return { success: false, error }
 
-  // Verify the option belongs to the caller's org before deleting
-  if (!(await isOptionInOrg(optionId, user.orgId))) {
-    return { success: false, error: 'Option not found' }
-  }
+  const option = await prisma.questionOption.findUnique({ where: { id: optionId }, select: { id: true } })
+  if (!option) return { success: false, error: 'Option not found' }
 
   await prisma.questionOption.delete({ where: { id: optionId } })
   return { success: true }
@@ -281,7 +276,7 @@ export async function getPendingUsers() {
   if (!user) return []
 
   return prisma.user.findMany({
-    where: { status: 'pending', orgId: user.orgId },
+    where: { status: 'pending' },
     select: { id: true, fullName: true, email: true, createdAt: true },
     orderBy: { createdAt: 'desc' },
   })
@@ -292,29 +287,27 @@ export async function getAllUsers() {
   if (!user) return []
 
   return prisma.user.findMany({
-    where: { orgId: user.orgId },
     select: { id: true, fullName: true, email: true, role: true, status: true, createdAt: true },
     orderBy: { createdAt: 'desc' },
   })
 }
 
 export async function approveUser(data: unknown): Promise<ActionResult> {
-  const { error, user } = await requireAdmin()
+  const { error } = await requireAdmin()
   if (error) return { success: false, error }
 
   const parsed = approveUserSchema.safeParse(data)
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' }
 
-  // Verify target user belongs to the same org
-  const target = await prisma.user.findUnique({ where: { id: parsed.data.userId }, select: { orgId: true } })
-  if (!target || target.orgId !== user.orgId) return { success: false, error: 'User not found' }
+  const target = await prisma.user.findUnique({ where: { id: parsed.data.userId }, select: { id: true } })
+  if (!target) return { success: false, error: 'User not found' }
 
   await prisma.user.update({
     where: { id: parsed.data.userId },
     data: { status: 'active', role: parsed.data.role },
   })
 
-  revalidatePath(orgPath(user.orgSlug, '/settings/users'))
+  revalidatePath('/settings/users')
   return { success: true }
 }
 
@@ -330,21 +323,20 @@ export async function updateUserStatus(data: unknown): Promise<ActionResult> {
     return { success: false, error: 'You cannot change your own status' }
   }
 
-  // Verify target user belongs to the same org
-  const target = await prisma.user.findUnique({ where: { id: parsed.data.userId }, select: { orgId: true } })
-  if (!target || target.orgId !== user.orgId) return { success: false, error: 'User not found' }
+  const target = await prisma.user.findUnique({ where: { id: parsed.data.userId }, select: { id: true } })
+  if (!target) return { success: false, error: 'User not found' }
 
   await prisma.user.update({
     where: { id: parsed.data.userId },
     data: { status: parsed.data.status },
   })
 
-  revalidatePath(orgPath(user.orgSlug, '/settings/users'))
+  revalidatePath('/settings/users')
   return { success: true }
 }
 
 export async function createUser(data: unknown): Promise<ActionResult> {
-  const { error, user } = await requireAdmin()
+  const { error } = await requireAdmin()
   if (error) return { success: false, error }
 
   const parsed = createUserSchema.safeParse(data)
@@ -352,16 +344,16 @@ export async function createUser(data: unknown): Promise<ActionResult> {
 
   const { fullName, email, password, role } = parsed.data
 
-  const existing = await prisma.user.findUnique({ where: { orgId_email: { orgId: user.orgId, email } } })
+  const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } })
   if (existing) return { success: false, error: 'A user with this email already exists' }
 
   const passwordHash = await bcrypt.hash(password, 12)
 
   await prisma.user.create({
-    data: { fullName, email, passwordHash, role, status: 'active', orgId: user.orgId },
+    data: { fullName, email, passwordHash, role, status: 'active' },
   })
 
-  revalidatePath(orgPath(user.orgSlug, '/settings/users'))
+  revalidatePath('/settings/users')
   return { success: true }
 }
 
@@ -393,7 +385,7 @@ export async function getActiveStagesBasic() {
   if (!user) return []
 
   return prisma.interviewStage.findMany({
-    where: { isActive: true, orgId: user.orgId },
+    where: { isActive: true },
     orderBy: { sortOrder: 'asc' },
     select: { id: true, name: true },
   })
@@ -403,16 +395,15 @@ export async function getUserAccess(userId: string) {
   const user = await getCurrentUser()
   if (!user) return { stageIds: [] }
 
-  // Verify the target user belongs to the caller's org before reading access
-  const target = await prisma.user.findUnique({ where: { id: userId }, select: { orgId: true } })
-  if (!target || target.orgId !== user.orgId) return { stageIds: [] }
+  const target = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } })
+  if (!target) return { stageIds: [] }
 
   const stageRows = await prisma.userStageAccess.findMany({ where: { userId }, select: { stageId: true } })
   return { stageIds: stageRows.map((r) => r.stageId) }
 }
 
 export async function setUserAccess(data: unknown): Promise<ActionResult> {
-  const { error, user } = await requireAdmin()
+  const { error } = await requireAdmin()
   if (error) return { success: false, error }
 
   const parsed = setUserAccessSchema.safeParse(data)
@@ -420,9 +411,8 @@ export async function setUserAccess(data: unknown): Promise<ActionResult> {
 
   const { userId, stageIds } = parsed.data
 
-  // Verify target user belongs to the same org
-  const target = await prisma.user.findUnique({ where: { id: userId }, select: { orgId: true } })
-  if (!target || target.orgId !== user.orgId) return { success: false, error: 'User not found' }
+  const target = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } })
+  if (!target) return { success: false, error: 'User not found' }
 
   await prisma.$transaction([
     prisma.userStageAccess.deleteMany({ where: { userId } }),
@@ -431,7 +421,7 @@ export async function setUserAccess(data: unknown): Promise<ActionResult> {
       : []),
   ])
 
-  revalidatePath(orgPath(user.orgSlug, '/settings/users'))
+  revalidatePath('/settings/users')
   return { success: true }
 }
 
@@ -439,9 +429,8 @@ export async function getJobAssignedUsers(jobId: string) {
   const user = await getCurrentUser()
   if (!user) return []
 
-  // Verify the job belongs to the caller's org before listing assignees
-  const job = await prisma.job.findUnique({ where: { id: jobId }, select: { orgId: true } })
-  if (!job || job.orgId !== user.orgId) return []
+  const job = await prisma.job.findUnique({ where: { id: jobId }, select: { id: true } })
+  if (!job) return []
 
   const rows = await prisma.jobAssignment.findMany({
     where: { jobId },
@@ -451,7 +440,7 @@ export async function getJobAssignedUsers(jobId: string) {
 }
 
 export async function setJobAssignments(data: unknown): Promise<ActionResult> {
-  const { error, user } = await requireAdmin()
+  const { error } = await requireAdmin()
   if (error) return { success: false, error }
 
   const parsed = setJobAssignmentsSchema.safeParse(data)
@@ -459,9 +448,8 @@ export async function setJobAssignments(data: unknown): Promise<ActionResult> {
 
   const { jobId, userIds } = parsed.data
 
-  // Verify job belongs to this org
-  const job = await prisma.job.findUnique({ where: { id: jobId }, select: { orgId: true } })
-  if (!job || job.orgId !== user.orgId) return { success: false, error: 'Job not found' }
+  const job = await prisma.job.findUnique({ where: { id: jobId }, select: { id: true } })
+  if (!job) return { success: false, error: 'Job not found' }
 
   await prisma.$transaction([
     prisma.jobAssignment.deleteMany({ where: { jobId } }),
@@ -470,7 +458,7 @@ export async function setJobAssignments(data: unknown): Promise<ActionResult> {
       : []),
   ])
 
-  revalidatePath(orgPath(user.orgSlug, `/jobs/${jobId}`))
+  revalidatePath(`/jobs/${jobId}`)
   return { success: true }
 }
 
@@ -480,11 +468,11 @@ export async function getAppSettings() {
   const user = await getCurrentUser()
   if (!user) return null
 
-  return prisma.appSettings.findUnique({ where: { orgId: user.orgId } })
+  return prisma.appSettings.findUnique({ where: { id: APP_SETTINGS_ID } })
 }
 
 export async function updateAppSettings(_prevState: ActionResult, formData: FormData): Promise<ActionResult> {
-  const { error, user } = await requireAdmin()
+  const { error } = await requireAdmin()
   if (error) return { success: false, error }
 
   const parsed = updateAppSettingsSchema.safeParse({
@@ -496,9 +484,9 @@ export async function updateAppSettings(_prevState: ActionResult, formData: Form
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' }
 
   await prisma.appSettings.upsert({
-    where: { orgId: user.orgId },
+    where: { id: APP_SETTINGS_ID },
     update: parsed.data,
-    create: { orgId: user.orgId, ...parsed.data },
+    create: { id: APP_SETTINGS_ID, ...parsed.data },
   })
 
   revalidatePath('/', 'layout')

@@ -1,33 +1,20 @@
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 
+import { APP_SETTINGS_ID } from '../src/lib/app-settings'
+
 const prisma = new PrismaClient()
 
 async function main() {
   console.log('Seeding database...')
 
   // ---------------------------------------------------------------------------
-  // 1. Default organization
-  // ---------------------------------------------------------------------------
-  const org = await prisma.organization.upsert({
-    where: { slug: 'wander' },
-    update: {},
-    create: {
-      id: 'org-default',
-      name: 'Wander',
-      slug: 'wander',
-    },
-  })
-
-  console.log(`Organization: ${org.name} (${org.slug})`)
-
-  // ---------------------------------------------------------------------------
-  // 2. Admin user
+  // 1. Admin user
   // ---------------------------------------------------------------------------
   const passwordHash = await bcrypt.hash('Admin123!', 12)
 
   const admin = await prisma.user.upsert({
-    where: { orgId_email: { orgId: org.id, email: 'admin@rekru.com' } },
+    where: { email: 'admin@rekru.com' },
     update: {},
     create: {
       email: 'admin@rekru.com',
@@ -35,21 +22,19 @@ async function main() {
       passwordHash,
       role: 'admin',
       status: 'active',
-      orgId: org.id,
-      isSuperAdmin: true,
     },
   })
 
   console.log(`Admin user: ${admin.email}`)
 
   // ---------------------------------------------------------------------------
-  // 3. App settings
+  // 2. App settings
   // ---------------------------------------------------------------------------
   await prisma.appSettings.upsert({
-    where: { orgId: org.id },
+    where: { id: APP_SETTINGS_ID },
     update: {},
     create: {
-      orgId: org.id,
+      id: APP_SETTINGS_ID,
       appName: 'Rekru',
       primaryColor: '#1e3a5f',
       secondaryColor: '#f8f7f4',
@@ -60,7 +45,7 @@ async function main() {
   console.log('App settings seeded.')
 
   // ---------------------------------------------------------------------------
-  // 4. Interview stages
+  // 3. Interview stages
   // ---------------------------------------------------------------------------
   const hrStage = await prisma.interviewStage.upsert({
     where: { id: 'stage-hr-interview' },
@@ -70,7 +55,6 @@ async function main() {
       name: 'HR Interview',
       sortOrder: 1,
       isActive: true,
-      orgId: org.id,
     },
   })
 
@@ -82,11 +66,10 @@ async function main() {
       name: 'Technical Interview',
       sortOrder: 2,
       isActive: true,
-      orgId: org.id,
     },
   })
 
-  const finalStage = await prisma.interviewStage.upsert({
+  await prisma.interviewStage.upsert({
     where: { id: 'stage-final-interview' },
     update: { isFinal: true },
     create: {
@@ -95,14 +78,13 @@ async function main() {
       sortOrder: 3,
       isActive: true,
       isFinal: true,
-      orgId: org.id,
     },
   })
 
   console.log('Interview stages seeded.')
 
   // ---------------------------------------------------------------------------
-  // 5. Stage questions and options
+  // 4. Stage questions and options
   // ---------------------------------------------------------------------------
 
   async function seedQuestion(
