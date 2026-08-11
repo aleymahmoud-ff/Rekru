@@ -4,9 +4,6 @@ export type { UserRole, UserStatus }
 
 export type SessionData = {
   userId: string
-  orgId: string
-  orgSlug: string
-  isSuperAdmin?: boolean
 }
 
 export type AuthUser = {
@@ -15,7 +12,4 @@ export type AuthUser = {
   email: string
   role: UserRole | null
   status: UserStatus
-  orgId: string
-  orgSlug: string
-  isSuperAdmin: boolean
 }

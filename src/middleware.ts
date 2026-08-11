@@ -11,10 +11,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Root path: redirect to /super if logged in, /login if not
+  // Root path: redirect to the dashboard if logged in, /login if not
   if (pathname === '/') {
     if (sessionCookie?.value) {
-      return NextResponse.redirect(new URL('/super', request.url))
+      return NextResponse.redirect(new URL('/dashboard', request.url))
     }
     return NextResponse.redirect(new URL('/login', request.url))
   }

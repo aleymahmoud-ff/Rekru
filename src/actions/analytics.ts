@@ -9,7 +9,7 @@ export async function getPipelineAnalytics(jobId?: string) {
 
   const [stages, jobs, failedAnswers, candidateStats] = await Promise.all([
     prisma.interviewStage.findMany({
-      where: { isActive: true, orgId: user.orgId },
+      where: { isActive: true },
       orderBy: { sortOrder: 'asc' },
       select: {
         id: true,
@@ -23,7 +23,6 @@ export async function getPipelineAnalytics(jobId?: string) {
     }),
 
     prisma.job.findMany({
-      where: { orgId: user.orgId },
       orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
       select: {
         id: true,
@@ -44,10 +43,7 @@ export async function getPipelineAnalytics(jobId?: string) {
       where: {
         interview: {
           outcome: 'fail',
-          jobCandidate: {
-            job: { orgId: user.orgId },
-            ...(jobId ? { jobId } : {}),
-          },
+          ...(jobId ? { jobCandidate: { jobId } } : {}),
         },
       },
       select: {
@@ -59,10 +55,7 @@ export async function getPipelineAnalytics(jobId?: string) {
 
     prisma.jobCandidate.groupBy({
       by: ['status'],
-      where: {
-        job: { orgId: user.orgId },
-        ...(jobId ? { jobId } : {}),
-      },
+      where: jobId ? { jobId } : {},
       _count: { id: true },
     }),
   ])

@@ -19,7 +19,6 @@ import type { AuthUser } from '@/types/auth'
 
 interface SidebarProps {
   user: AuthUser
-  orgSlug: string
 }
 
 interface NavItem {
@@ -28,27 +27,23 @@ interface NavItem {
   icon: React.ElementType
 }
 
-function buildMainNav(orgSlug: string): NavItem[] {
-  return [
-    { label: 'Dashboard', href: `/${orgSlug}/dashboard`, icon: LayoutDashboard },
-    { label: 'Jobs', href: `/${orgSlug}/jobs`, icon: Briefcase },
-    { label: 'Interviews', href: `/${orgSlug}/interviews`, icon: ClipboardList },
-  ]
-}
+const MAIN_NAV: NavItem[] = [
+  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { label: 'Jobs', href: '/jobs', icon: Briefcase },
+  { label: 'Interviews', href: '/interviews', icon: ClipboardList },
+]
 
-function buildAdminNav(orgSlug: string): NavItem[] {
-  return [
-    { label: 'Analytics', href: `/${orgSlug}/analytics`, icon: BarChart2 },
-  ]
-}
+const ADMIN_NAV: NavItem[] = [
+  { label: 'Analytics', href: '/analytics', icon: BarChart2 },
+]
 
-function buildSettingsNav(orgSlug: string): NavItem[] {
-  return [
-    { label: 'Interview Stages', href: `/${orgSlug}/settings/stages`, icon: Settings },
-    { label: 'User Management', href: `/${orgSlug}/settings/users`, icon: Users },
-    { label: 'General', href: `/${orgSlug}/settings/general`, icon: Palette },
-  ]
-}
+const SETTINGS_NAV: NavItem[] = [
+  { label: 'Interview Stages', href: '/settings/stages', icon: Settings },
+  { label: 'User Management', href: '/settings/users', icon: Users },
+  { label: 'General', href: '/settings/general', icon: Palette },
+]
+
+const ACCOUNT_HREF = '/settings/account'
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin',
@@ -79,15 +74,10 @@ function NavLink({ item, isActive }: { item: NavItem; isActive: boolean }) {
   )
 }
 
-export function Sidebar({ user, orgSlug }: SidebarProps) {
+export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname()
   const isAdmin = user.role === 'admin'
   const roleLabel = user.role ? (ROLE_LABELS[user.role] ?? user.role) : 'User'
-
-  const mainNav = buildMainNav(orgSlug)
-  const adminNav = buildAdminNav(orgSlug)
-  const settingsNav = buildSettingsNav(orgSlug)
-  const accountHref = `/${orgSlug}/settings/account`
 
   return (
     <aside
@@ -113,7 +103,7 @@ export function Sidebar({ user, orgSlug }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-        {mainNav.map((item) => (
+        {MAIN_NAV.map((item) => (
           <NavLink
             key={item.href}
             item={item}
@@ -125,7 +115,7 @@ export function Sidebar({ user, orgSlug }: SidebarProps) {
         {isAdmin && (
           <div className="pt-3">
             <div className="space-y-1">
-              {adminNav.map((item) => (
+              {ADMIN_NAV.map((item) => (
                 <NavLink
                   key={item.href}
                   item={item}
@@ -146,7 +136,7 @@ export function Sidebar({ user, orgSlug }: SidebarProps) {
               Settings
             </p>
             <div className="space-y-1">
-              {settingsNav.map((item) => (
+              {SETTINGS_NAV.map((item) => (
                 <NavLink
                   key={item.href}
                   item={item}
@@ -195,10 +185,10 @@ export function Sidebar({ user, orgSlug }: SidebarProps) {
 
         {/* My Account */}
         <Link
-          href={accountHref}
+          href={ACCOUNT_HREF}
           className={cn(
             'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-all duration-150',
-            pathname === accountHref
+            pathname === ACCOUNT_HREF
               ? 'text-white bg-white/10'
               : 'text-white/50 hover:text-white/90 hover:bg-white/5',
           )}

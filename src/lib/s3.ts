@@ -65,12 +65,12 @@ export function validateCvFile(file: File): string | null {
  * Validates and uploads a CV file to S3, returning the object key to persist.
  * Throws on unsupported type or oversized file.
  */
-export async function uploadCv(orgId: string, candidateId: string, file: File): Promise<string> {
+export async function uploadCv(candidateId: string, file: File): Promise<string> {
   const error = validateCvFile(file)
   if (error) throw new Error(error)
   const ext = cvExtForType(file.type)!
 
-  const key = `cv/${orgId}/${candidateId}/${randomUUID()}.${ext}`
+  const key = `cv/${candidateId}/${randomUUID()}.${ext}`
   const body = Buffer.from(await file.arrayBuffer())
   await client().send(
     new PutObjectCommand({ Bucket: bucket!, Key: key, Body: body, ContentType: file.type })

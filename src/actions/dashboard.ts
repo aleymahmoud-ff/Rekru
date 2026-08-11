@@ -2,7 +2,6 @@
 
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
-import { orgPath as _orgPath } from '@/lib/org'
 
 export async function getDashboardStats() {
   const user = await getCurrentUser()
@@ -27,13 +26,10 @@ export async function getDashboardStats() {
     stageIdFilter = stageRows.map((r) => r.stageId)
   }
 
-  const candidateJobFilter = jobIdFilter
-    ? { jobId: { in: jobIdFilter }, job: { orgId: user.orgId } }
-    : { job: { orgId: user.orgId } }
+  const candidateJobFilter = jobIdFilter ? { jobId: { in: jobIdFilter } } : {}
 
   const stageWhere = {
     isActive: true,
-    orgId: user.orgId,
     ...(stageIdFilter ? { id: { in: stageIdFilter } } : {}),
   }
 
@@ -47,9 +43,7 @@ export async function getDashboardStats() {
     prisma.interview.count({
       where: {
         outcome: 'on_hold',
-        jobCandidate: jobIdFilter
-          ? { jobId: { in: jobIdFilter }, job: { orgId: user.orgId } }
-          : { job: { orgId: user.orgId } },
+        ...(jobIdFilter ? { jobCandidate: { jobId: { in: jobIdFilter } } } : {}),
       },
     }),
 
@@ -72,9 +66,7 @@ export async function getDashboardStats() {
       take: 10,
       orderBy: { conductedAt: 'desc' },
       where: {
-        jobCandidate: jobIdFilter
-          ? { jobId: { in: jobIdFilter }, job: { orgId: user.orgId } }
-          : { job: { orgId: user.orgId } },
+        ...(jobIdFilter ? { jobCandidate: { jobId: { in: jobIdFilter } } } : {}),
       },
       include: {
         jobCandidate: {
@@ -92,7 +84,6 @@ export async function getDashboardStats() {
     prisma.job.count({
       where: {
         status: 'open',
-        orgId: user.orgId,
         ...(jobIdFilter ? { id: { in: jobIdFilter } } : {}),
       },
     }),
