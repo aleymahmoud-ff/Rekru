@@ -1,0 +1,153 @@
+<main>
+  <div class="wrap">
+
+    <div class="page-head">
+      <div>
+        <h1>Dashboard</h1>
+        <p>Welcome back, Layla</p>
+      </div>
+    </div>
+
+    <!-- ROW 1 — stats -->
+    <div class="statrow mb16">
+      <div class="stat">
+        <div class="tile" style="background:var(--primary-tint);color:var(--primary)"><svg class="icon"><use href="#i-briefcase"/></svg></div>
+        <div><div class="stat-label">Open Jobs</div><div class="stat-value num">4</div></div>
+      </div>
+      <div class="stat">
+        <div class="tile" style="background:var(--blue-bg);color:var(--blue)"><svg class="icon"><use href="#i-user"/></svg></div>
+        <div><div class="stat-label">Active</div><div class="stat-value num">23</div></div>
+      </div>
+      <div class="stat">
+        <div class="tile" style="background:var(--green-bg);color:var(--green)"><svg class="icon"><use href="#i-check-circle-2"/></svg></div>
+        <div><div class="stat-label">Hired</div><div class="stat-value num">7</div></div>
+      </div>
+      <div class="stat">
+        <div class="tile" style="background:var(--red-bg);color:var(--red)"><svg class="icon"><use href="#i-x-circle"/></svg></div>
+        <div><div class="stat-label">Rejected</div><div class="stat-value num">14</div></div>
+      </div>
+      <div class="stat">
+        <div class="tile" style="background:var(--amber-bg);color:var(--amber)"><svg class="icon"><use href="#i-clock"/></svg></div>
+        <div><div class="stat-label">On Hold</div><div class="stat-value num">3</div></div>
+      </div>
+    </div>
+
+    <!-- ROW 2 — candidates by stage -->
+    <h2 class="section">Candidates by Stage</h2>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px" class="mb16">
+      <div class="card card-pad">
+        <div class="row between"><div class="f13 med">HR Interview</div><div class="f12 faint num">39%</div></div>
+        <div class="stat-value num mt4" style="font-size:30px">9</div>
+        <div class="bar mt8"><i style="width:39%;background:var(--s1)"></i></div>
+      </div>
+      <div class="card card-pad">
+        <div class="row between"><div class="f13 med">Technical Interview</div><div class="f12 faint num">30%</div></div>
+        <div class="stat-value num mt4" style="font-size:30px">7</div>
+        <div class="bar mt8"><i style="width:30%;background:var(--s2)"></i></div>
+      </div>
+      <div class="card card-pad">
+        <div class="row between"><div class="f13 med">Culture Fit</div><div class="f12 faint num">17%</div></div>
+        <div class="stat-value num mt4" style="font-size:30px">4</div>
+        <div class="bar mt8"><i style="width:17%;background:var(--s3)"></i></div>
+      </div>
+      <div class="card card-pad stagecard final">
+        <div class="row between"><div class="f13 med">Final Interview</div><span class="pill brand" style="background:rgba(255,255,255,.6)">Final</span></div>
+        <div class="stat-value num mt4" style="font-size:30px">3</div>
+        <div class="bar mt8" style="background:rgba(0,0,0,.06)"><i style="width:13%;background:var(--s1)"></i></div>
+      </div>
+    </div>
+
+    <!-- ROW 3 — recent interviews -->
+    <h2 class="section">Recent Interviews</h2>
+    <div class="card grow">
+      <div class="card-body">
+        <table>
+          <tbody>
+            <tr>
+              <td style="width:34%"><div class="med">Nadia Farouk</div><div class="f12 faint">Senior Backend Engineer</div></td>
+              <td style="width:20%" class="muted">Final Interview</td>
+              <td style="width:18%" class="muted">Layla Haddad</td>
+              <td style="width:14%" class="faint num">2 days ago</td>
+              <td class="right"><span class="pill pass">Pass</span></td>
+            </tr>
+            <tr>
+              <td><div class="med">Omar Bishara</div><div class="f12 faint">Senior Backend Engineer</div></td>
+              <td class="muted">Technical Interview</td>
+              <td class="muted">Rami Sabbagh</td>
+              <td class="faint num">2 days ago</td>
+              <td class="right"><span class="pill hold">On Hold</span></td>
+            </tr>
+            <tr>
+              <td><div class="med">Yasmin Tarek</div><div class="f12 faint">Product Designer</div></td>
+              <td class="muted">Culture Fit</td>
+              <td class="muted">Hana Aziz</td>
+              <td class="faint num">3 days ago</td>
+              <td class="right"><div class="row gap8" style="justify-content:flex-end"><span class="badge-edit"><svg class="icon"><use href="#i-pencil"/></svg>Edited</span><span class="pill pass">Pass</span></div></td>
+            </tr>
+            <tr>
+              <td><div class="med">Karim Nasser</div><div class="f12 faint">Customer Success Lead</div></td>
+              <td class="muted">HR Interview</td>
+              <td class="muted">Layla Haddad</td>
+              <td class="faint num">4 days ago</td>
+              <td class="right"><span class="pill fail">Fail</span></td>
+            </tr>
+            <tr>
+              <td><div class="med">Dina Halabi</div><div class="f12 faint">Data Analyst</div></td>
+              <td class="muted">Technical Interview</td>
+              <td class="muted">Tarek Mansour</td>
+              <td class="faint num">5 days ago</td>
+              <td class="right"><span class="pill pass">Pass</span></td>
+            </tr>
+            <tr>
+              <td><div class="med">Sami Rahal</div><div class="f12 faint">Product Designer</div></td>
+              <td class="muted">HR Interview</td>
+              <td class="muted">Hana Aziz</td>
+              <td class="faint num">6 days ago</td>
+              <td class="right"><span class="pill hold">On Hold</span></td>
+            </tr>
+            <tr>
+              <td><div class="med">Nadia Farouk</div><div class="f12 faint">Senior Backend Engineer</div></td>
+              <td class="muted">Culture Fit</td>
+              <td class="muted">Hana Aziz</td>
+              <td class="faint num">8 days ago</td>
+              <td class="right"><span class="pill pass">Pass</span></td>
+            </tr>
+            <tr>
+              <td><div class="med">Karim Nasser</div><div class="f12 faint">Customer Success Lead</div></td>
+              <td class="muted">HR Interview</td>
+              <td class="muted">Rami Sabbagh</td>
+              <td class="faint num">9 days ago</td>
+              <td class="right"><span class="pill fail">Fail</span></td>
+            </tr>
+            <tr>
+              <td><div class="med">Yasmin Tarek</div><div class="f12 faint">Product Designer</div></td>
+              <td class="muted">Technical Interview</td>
+              <td class="muted">Tarek Mansour</td>
+              <td class="faint num">10 days ago</td>
+              <td class="right"><span class="pill pass">Pass</span></td>
+            </tr>
+            <tr>
+              <td><div class="med">Dina Halabi</div><div class="f12 faint">Data Analyst</div></td>
+              <td class="muted">HR Interview</td>
+              <td class="muted">Layla Haddad</td>
+              <td class="faint num">11 days ago</td>
+              <td class="right"><span class="pill pass">Pass</span></td>
+            </tr>
+            <tr>
+              <td><div class="med">Sami Rahal</div><div class="f12 faint">Product Designer</div></td>
+              <td class="muted">Culture Fit</td>
+              <td class="muted">Hana Aziz</td>
+              <td class="faint num">12 days ago</td>
+              <td class="right"><span class="pill fail">Fail</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card-foot">
+        <span>Showing 11 of 83 interviews</span>
+        <span class="link">View all<svg class="icon"><use href="#i-chevron-right"/></svg></span>
+      </div>
+    </div>
+
+  </div>
+</main>

@@ -1,0 +1,128 @@
+<main>
+  <div class="wrap">
+
+    <div class="page-head">
+      <div>
+        <h1>Interviews</h1>
+        <p>Candidates waiting at each stage</p>
+      </div>
+    </div>
+
+    <!-- stage cards -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px" class="mb16">
+
+      <div class="card card-pad stagecard">
+        <div class="row between">
+          <div class="tile" style="background:var(--primary-tint);color:var(--primary)"><svg class="icon"><use href="#i-clipboard-list"/></svg></div>
+          <svg class="icon faint"><use href="#i-chevron-right"/></svg>
+        </div>
+        <div class="disp semi mt12" style="font-size:17px">HR Interview</div>
+        <div class="stat-value num mt8" style="font-size:38px">9</div>
+        <div class="f12 faint">candidates waiting</div>
+        <div class="f12 faint mt8">4 questions · 1 job-specific</div>
+      </div>
+
+      <div class="card card-pad stagecard">
+        <div class="row between">
+          <div class="tile" style="background:var(--amber-bg);color:var(--amber)"><svg class="icon"><use href="#i-clipboard-list"/></svg></div>
+          <svg class="icon faint"><use href="#i-chevron-right"/></svg>
+        </div>
+        <div class="disp semi mt12" style="font-size:17px">Technical Interview</div>
+        <div class="stat-value num mt8" style="font-size:38px">7</div>
+        <div class="f12 faint">candidates waiting</div>
+        <div class="f12 faint mt8">5 questions · 1 job-specific</div>
+      </div>
+
+      <div class="card card-pad stagecard">
+        <div class="row between">
+          <div class="tile" style="background:var(--blue-bg);color:var(--blue)"><svg class="icon"><use href="#i-clipboard-list"/></svg></div>
+          <svg class="icon faint"><use href="#i-chevron-right"/></svg>
+        </div>
+        <div class="disp semi mt12" style="font-size:17px">Culture Fit</div>
+        <div class="stat-value num mt8" style="font-size:38px">4</div>
+        <div class="f12 faint">candidates waiting</div>
+        <div class="f12 faint mt8">4 questions · all universal</div>
+      </div>
+
+      <div class="card card-pad stagecard final">
+        <div class="row between">
+          <div class="tile" style="background:rgba(255,255,255,.65);color:var(--primary)"><svg class="icon"><use href="#i-check-circle-2"/></svg></div>
+          <span class="pill brand" style="background:rgba(255,255,255,.65)">Final</span>
+        </div>
+        <div class="disp semi mt12" style="font-size:17px">Final Interview</div>
+        <div class="stat-value num mt8" style="font-size:38px">3</div>
+        <div class="f12 muted">candidates waiting</div>
+        <div class="f12 muted mt8">3 questions · adds hire decision</div>
+      </div>
+
+    </div>
+
+    <!-- queue -->
+    <div class="card grow">
+      <div class="card-head">
+        <h3>Your Queue</h3>
+        <div class="row gap12"><span class="f12 faint">Sorted by longest waiting</span><span class="btn btn-sm"><svg class="icon" style="width:14px;height:14px"><use href="#i-filter"/></svg>All stages</span></div>
+      </div>
+      <div class="card-body">
+        <table>
+          <thead>
+            <tr><th>Candidate</th><th>Job</th><th>Stage</th><th>Waiting</th><th class="right">Action</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="width:24%"><div class="med">Omar Bishara</div><div class="f12 faint">omar.bishara@example.com</div></td>
+              <td class="muted">Senior Backend Engineer</td>
+              <td class="muted">Technical Interview</td>
+              <td class="num semi" style="color:var(--amber)">9 days</td>
+              <td class="right"><span class="btn btn-sm btn-primary">Start Interview</span></td>
+            </tr>
+            <tr>
+              <td><div class="med">Sami Rahal</div><div class="f12 faint">sami.rahal@example.com</div></td>
+              <td class="muted">Product Designer</td>
+              <td class="muted">HR Interview</td>
+              <td class="num semi" style="color:var(--amber)">6 days</td>
+              <td class="right"><span class="btn btn-sm btn-primary">Start Interview</span></td>
+            </tr>
+            <tr>
+              <td><div class="med">Nadia Farouk</div><div class="f12 faint">nadia.farouk@example.com</div></td>
+              <td class="muted">Senior Backend Engineer</td>
+              <td class="muted">Final Interview</td>
+              <td class="num muted">4 days</td>
+              <td class="right"><span class="btn btn-sm btn-primary">Start Interview</span></td>
+            </tr>
+            <tr>
+              <td><div class="med">Dina Halabi</div><div class="f12 faint">dina.halabi@example.com</div></td>
+              <td class="muted">Data Analyst</td>
+              <td class="muted">Culture Fit</td>
+              <td class="num muted">3 days</td>
+              <td class="right"><span class="btn btn-sm btn-primary">Start Interview</span></td>
+            </tr>
+            <tr>
+              <td><div class="med">Rana Khalil</div><div class="f12 faint">rana.khalil@example.com</div></td>
+              <td class="muted">Data Analyst</td>
+              <td class="muted">Technical Interview</td>
+              <td class="num muted">3 days</td>
+              <td class="right"><span class="btn btn-sm btn-primary">Start Interview</span></td>
+            </tr>
+            <tr>
+              <td><div class="med">Fadi Chalhoub</div><div class="f12 faint">fadi.chalhoub@example.com</div></td>
+              <td class="muted">Customer Success Lead</td>
+              <td class="muted">HR Interview</td>
+              <td class="num muted">2 days</td>
+              <td class="right"><span class="btn btn-sm btn-primary">Start Interview</span></td>
+            </tr>
+            <tr>
+              <td><div class="med">Maya Zeidan</div><div class="f12 faint">maya.zeidan@example.com</div></td>
+              <td class="muted">Product Designer</td>
+              <td class="muted">HR Interview</td>
+              <td class="num muted">1 day</td>
+              <td class="right"><span class="btn btn-sm btn-primary">Start Interview</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card-foot"><span>Showing 7 of 23 waiting candidates</span><span class="link">View all stages<svg class="icon"><use href="#i-chevron-right"/></svg></span></div>
+    </div>
+
+  </div>
+</main>
