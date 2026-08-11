@@ -60,6 +60,7 @@
 |------|-----------|---------|------------|
 | `<Sidebar>` | `src/components/layout/sidebar.tsx` | Fixed left nav with role-aware settings section and logout. Props: `user: AuthUser` | Yoki |
 | `<PageHeader>` | `src/components/shared/page-header.tsx` | Reusable page title/description/action bar. Props: `title`, `description?`, `action?` | Yoki |
+| `<CvViewLink>` | `src/components/candidates/cv-view-link.tsx` | "View CV" link. Opens self-hosted PDFs in an in-page modal viewer; falls back to a new tab otherwise. Props: `url`, `title`, `canPreview`, `className?`, `showExternalHint?`. Use this rather than hand-rolling a CV link. | Yoki |
 
 ---
 
@@ -92,7 +93,8 @@
 | Name | File Path | Purpose | Created By |
 |------|-----------|---------|------------|
 | `sendEmail()` | `src/lib/integrations/email.ts` | Email abstraction layer (no-op in V1) | Omar |
-| `uploadCv()` / `getCvSignedUrl()` / `resolveCvUrl()` / `deleteCv()` / `isS3Configured()` / `isS3Key()` / `CV_ACCEPT` / `MAX_CV_BYTES` | `src/lib/s3.ts` | S3-compatible CV storage (Cranl Storage): upload, presigned view URLs, legacy-URL passthrough | Omar |
+| `uploadCv()` / `getCvSignedUrl()` / `resolveCvUrl()` / `deleteCv()` / `isS3Configured()` / `isS3Key()` / `CV_ACCEPT` / `MAX_CV_BYTES` | `src/lib/s3.ts` | S3-compatible CV storage (Cranl Storage → Cloudflare R2): upload, presigned view URLs, legacy-URL passthrough | Omar |
+| `isPreviewableCv(cvLink)` | `src/lib/s3.ts` | True if a CV can render inline in an iframe — self-hosted PDFs only. Word docs download instead, and external hosts (Drive/SharePoint) block framing. Drives `<CvViewLink canPreview>`. | Omar |
 
 ---
 

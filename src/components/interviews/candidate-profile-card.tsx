@@ -1,4 +1,5 @@
 import { User, Mail, Phone, FileText, Briefcase, Calendar } from 'lucide-react'
+import { CvViewLink } from '@/components/candidates/cv-view-link'
 
 interface CandidateProfileCardProps {
   candidate: {
@@ -11,9 +12,17 @@ interface CandidateProfileCardProps {
   stageName: string
   /** Resolved signed/external URL for the candidate's CV, or null. */
   cvUrl: string | null
+  /** Whether the CV renders inline (self-hosted PDF) or opens in a new tab. */
+  cvPreviewable: boolean
 }
 
-export function CandidateProfileCard({ candidate, jobTitle, stageName, cvUrl }: CandidateProfileCardProps) {
+export function CandidateProfileCard({
+  candidate,
+  jobTitle,
+  stageName,
+  cvUrl,
+  cvPreviewable,
+}: CandidateProfileCardProps) {
   return (
     <div
       className="rounded-xl border bg-white p-5 space-y-5"
@@ -91,16 +100,12 @@ export function CandidateProfileCard({ candidate, jobTitle, stageName, cvUrl }: 
 
         {cvUrl && (
           <ProfileRow icon={<FileText className="h-4 w-4" />} label="CV">
-            <a
-              href={cvUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 hover:underline"
-              style={{ color: '#1e3a5f' }}
-            >
-              View CV
-              <span className="text-[10px]">↗</span>
-            </a>
+            <CvViewLink
+              url={cvUrl}
+              title={`${candidate.fullName} — CV`}
+              canPreview={cvPreviewable}
+              showExternalHint={!cvPreviewable}
+            />
           </ProfileRow>
         )}
       </div>

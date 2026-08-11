@@ -53,6 +53,18 @@ export function isS3Key(value: string | null | undefined): value is string {
   return Boolean(value && !/^https?:\/\//i.test(value))
 }
 
+/**
+ * True if a stored CV can be rendered inline in an iframe.
+ *
+ * Only PDFs we host ourselves qualify: browsers render PDFs natively but
+ * download Word documents instead, and third-party hosts (Google Drive,
+ * SharePoint) send X-Frame-Options that block framing. Everything else falls
+ * back to opening in a new tab.
+ */
+export function isPreviewableCv(cvLink: string | null | undefined): boolean {
+  return isS3Key(cvLink) && /\.pdf$/i.test(cvLink)
+}
+
 /** Validates a CV file's type and size. Returns an error message, or null if valid. */
 export function validateCvFile(file: File): string | null {
   if (!cvExtForType(file.type)) return 'Unsupported file type. Upload a PDF or Word document.'

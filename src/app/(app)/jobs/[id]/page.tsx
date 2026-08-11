@@ -13,7 +13,7 @@ import { ManageTeamDialog } from '@/components/jobs/manage-team-dialog'
 import { CandidateCvControl } from '@/components/candidates/candidate-cv-control'
 import { getAllUsers } from '@/actions/settings'
 import { getCurrentUser } from '@/lib/auth'
-import { isS3Configured, resolveCvUrl } from '@/lib/s3'
+import { isS3Configured, isPreviewableCv, resolveCvUrl } from '@/lib/s3'
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -144,6 +144,8 @@ export default async function JobDetailPage({ params }: Props) {
                       candidateId={jc.candidate.id}
                       jobId={job.id}
                       cvUrl={cvUrls.get(jc.candidate.id) ?? null}
+                      cvPreviewable={isPreviewableCv(jc.candidate.cvLink)}
+                      candidateName={jc.candidate.fullName}
                       uploadEnabled={uploadEnabled}
                     />
                     <p className="text-xs" style={{ fontFamily: 'var(--font-body)', color: '#6b6560' }}>

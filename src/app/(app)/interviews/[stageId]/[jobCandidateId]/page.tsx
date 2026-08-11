@@ -6,7 +6,7 @@ import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 import { InterviewForm } from '@/components/interviews/interview-form'
 import { CandidateProfileCard } from '@/components/interviews/candidate-profile-card'
-import { resolveCvUrl } from '@/lib/s3'
+import { isPreviewableCv, resolveCvUrl } from '@/lib/s3'
 
 type Props = { params: Promise<{ stageId: string; jobCandidateId: string }> }
 
@@ -98,6 +98,7 @@ export default async function ConductInterviewPage({ params }: Props) {
               jobTitle={jobCandidate.job.title}
               stageName={stage.name}
               cvUrl={cvUrl}
+              cvPreviewable={isPreviewableCv(jobCandidate.candidate.cvLink)}
             />
           </div>
         </div>

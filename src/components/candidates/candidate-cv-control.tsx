@@ -2,19 +2,31 @@
 
 import { useActionState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { FileText, Upload, Loader2 } from 'lucide-react'
+import { Upload, Loader2 } from 'lucide-react'
 import { uploadCandidateCv } from '@/actions/candidates'
+import { CvViewLink } from '@/components/candidates/cv-view-link'
 
 interface CandidateCvControlProps {
   candidateId: string
   jobId: string
   /** Resolved signed/external URL for an existing CV, or null. */
   cvUrl: string | null
+  /** Whether the CV renders inline (self-hosted PDF) or opens in a new tab. */
+  cvPreviewable: boolean
+  /** Candidate name, used as the inline viewer's title. */
+  candidateName: string
   /** Whether CV storage is configured on the server. */
   uploadEnabled: boolean
 }
 
-export function CandidateCvControl({ candidateId, jobId, cvUrl, uploadEnabled }: CandidateCvControlProps) {
+export function CandidateCvControl({
+  candidateId,
+  jobId,
+  cvUrl,
+  cvPreviewable,
+  candidateName,
+  uploadEnabled,
+}: CandidateCvControlProps) {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const formRef = useRef<HTMLFormElement>(null)
@@ -31,16 +43,12 @@ export function CandidateCvControl({ candidateId, jobId, cvUrl, uploadEnabled }:
   return (
     <form ref={formRef} action={formAction} className="flex items-center gap-2">
       {cvUrl && (
-        <a
-          href={cvUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-xs font-medium hover:underline"
-          style={{ fontFamily: 'var(--font-body)', color: '#1e3a5f' }}
-        >
-          <FileText className="h-3.5 w-3.5" />
-          View CV
-        </a>
+        <CvViewLink
+          url={cvUrl}
+          title={`${candidateName} — CV`}
+          canPreview={cvPreviewable}
+          className="text-xs font-medium"
+        />
       )}
 
       {uploadEnabled && (
