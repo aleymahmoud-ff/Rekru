@@ -59,11 +59,18 @@ export const createUserSchema = z.object({
 
 export const resetUserPasswordSchema = z.object({
   userId: z.string().min(1),
-  // Omitted (or empty) means "generate a secure password server-side".
+  // Omitted means "generate a secure password server-side". An empty string is
+  // rejected rather than treated as omitted, so a blank field can never be
+  // mistaken for a deliberate choice.
   password: z
     .string()
+    // Trim first so a whitespace-only value fails the length check rather than
+    // becoming an unusable password nobody can retype.
+    .trim()
     .min(8, 'Password must be at least 8 characters')
-    .max(128, 'Password must be at most 128 characters')
+    // bcrypt silently truncates beyond 72 bytes, so accepting more would be a
+    // misleading contract.
+    .max(72, 'Password must be at most 72 characters')
     .optional(),
 })
 

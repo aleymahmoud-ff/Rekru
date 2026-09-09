@@ -42,7 +42,8 @@ export function ResetPasswordDialog({ userId, userName, userEmail }: Props) {
     }
   }
 
-  function handleReset() {
+  function handleReset(e: React.FormEvent) {
+    e.preventDefault()
     setError(null)
     startTransition(async () => {
       const result = await resetUserPassword({
@@ -153,7 +154,7 @@ export function ResetPasswordDialog({ userId, userName, userEmail }: Props) {
             </div>
           ) : (
             /* ---- Form: choose how to set the new password ---- */
-            <div className="space-y-4 mt-2">
+            <form onSubmit={handleReset} className="space-y-4 mt-2">
               <p className="text-xs" style={{ fontFamily: 'var(--font-body)', color: '#6b6560' }}>
                 This replaces the current password for{' '}
                 <span style={{ color: '#1a1a1a' }}>{userEmail}</span>. The new password is
@@ -169,7 +170,7 @@ export function ResetPasswordDialog({ userId, userName, userEmail }: Props) {
                     type="radio"
                     name="reset-mode"
                     checked={mode === 'generate'}
-                    onChange={() => setMode('generate')}
+                    onChange={() => { setMode('generate'); setError(null) }}
                     className="h-4 w-4 mt-0.5"
                     style={{ accentColor: '#1e3a5f' }}
                   />
@@ -191,7 +192,7 @@ export function ResetPasswordDialog({ userId, userName, userEmail }: Props) {
                     type="radio"
                     name="reset-mode"
                     checked={mode === 'manual'}
-                    onChange={() => setMode('manual')}
+                    onChange={() => { setMode('manual'); setError(null) }}
                     className="h-4 w-4 mt-0.5"
                     style={{ accentColor: '#1e3a5f' }}
                   />
@@ -210,8 +211,9 @@ export function ResetPasswordDialog({ userId, userName, userEmail }: Props) {
                     id="rp-password"
                     type="text"
                     value={manualPassword}
-                    onChange={(e) => setManualPassword(e.target.value)}
+                    onChange={(e) => { setManualPassword(e.target.value); setError(null) }}
                     placeholder="Min. 8 characters"
+                    maxLength={72}
                     autoComplete="off"
                     style={{ fontFamily: 'var(--font-body)' }}
                   />
@@ -223,14 +225,14 @@ export function ResetPasswordDialog({ userId, userName, userEmail }: Props) {
               )}
 
               <button
-                disabled={isPending || (mode === 'manual' && manualPassword.length < 8)}
-                onClick={handleReset}
+                type="submit"
+                disabled={isPending || (mode === 'manual' && manualPassword.trim().length < 8)}
                 className="w-full rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50"
                 style={{ backgroundColor: '#dc2626', fontFamily: 'var(--font-body)' }}
               >
                 {isPending ? 'Resetting...' : 'Reset Password'}
               </button>
-            </div>
+            </form>
           )}
         </DialogContent>
       </Dialog>

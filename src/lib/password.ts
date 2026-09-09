@@ -13,19 +13,29 @@ const ALL = LOWERCASE + UPPERCASE + DIGITS + SYMBOLS
 
 export const GENERATED_PASSWORD_LENGTH = 14
 
+/** Lower bound: four guaranteed character classes plus filler. */
+const MIN_LENGTH = 8
+/** Upper bound: bcrypt ignores input beyond 72 bytes, so longer is pointless. */
+const MAX_LENGTH = 72
+
 /**
  * Generates a cryptographically secure random password.
  *
  * Uses `crypto.randomInt` (rejection sampling) rather than `Math.random` so the
  * output is unbiased and unpredictable. The result always contains at least one
- * lowercase letter, uppercase letter, digit, and symbol.
+ * lowercase letter, uppercase letter, digit, and symbol. Guaranteeing those
+ * four classes costs a little entropy versus a uniform draw over the full
+ * charset (~76 bits vs ~85 at the default length) — immaterial here, and worth
+ * it so the password satisfies any downstream complexity rule.
+ *
+ * `length` is clamped to [8, 72].
  *
  * Server-side only — `crypto.randomInt` is a Node API.
  */
 export function generatePassword(length: number = GENERATED_PASSWORD_LENGTH): string {
-  // Four guaranteed characters + filler; anything shorter can't satisfy the
-  // complexity requirement below.
-  const size = Math.max(length, 8)
+  // Clamped at both ends: anything shorter can't satisfy the complexity
+  // requirement below, and anything longer is discarded by bcrypt anyway.
+  const size = Math.min(Math.max(length, MIN_LENGTH), MAX_LENGTH)
 
   const chars = [
     LOWERCASE[randomInt(LOWERCASE.length)],

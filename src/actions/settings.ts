@@ -27,6 +27,10 @@ type ActionResult = { success: boolean; error?: string }
 async function requireAdmin() {
   const user = await getCurrentUser()
   if (!user) return { error: 'Not authenticated' as const, user: null }
+  // Status is otherwise only enforced at login (see `login` in actions/auth.ts)
+  // and the middleware checks cookie presence only, so a session issued before
+  // the account was deactivated would still pass a role-only check.
+  if (user.status !== 'active') return { error: 'Your account is not active' as const, user: null }
   if (user.role !== 'admin') return { error: 'Admin access required' as const, user: null }
   return { error: null, user }
 }
