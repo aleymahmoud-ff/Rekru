@@ -3,6 +3,7 @@
 import { useTransition } from 'react'
 import { approveUser, updateUserStatus } from '@/actions/settings'
 import { UserAccessDialog } from '@/components/settings/user-access-dialog'
+import { ResetPasswordDialog } from '@/components/settings/reset-password-dialog'
 
 type Stage = { id: string; name: string }
 
@@ -61,6 +62,15 @@ export function UserRow({ userData, currentUserId, allStages }: { userData: User
             userId={userData.id}
             userName={userData.fullName}
             allStages={allStages}
+          />
+        )}
+
+        {/* Password reset — available for any other user, in any status */}
+        {!isSelf && (
+          <ResetPasswordDialog
+            userId={userData.id}
+            userName={userData.fullName}
+            userEmail={userData.email}
           />
         )}
 

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 import { APP_SETTINGS_ID } from '@/lib/app-settings'
+import { generatePassword } from '@/lib/password'
 import bcrypt from 'bcryptjs'
 import {
   createStageSchema,
@@ -15,6 +16,7 @@ import {
   approveUserSchema,
   updateUserStatusSchema,
   createUserSchema,
+  resetUserPasswordSchema,
   changePasswordSchema,
   setUserAccessSchema,
   setJobAssignmentsSchema,
@@ -25,6 +27,10 @@ type ActionResult = { success: boolean; error?: string }
 async function requireAdmin() {
   const user = await getCurrentUser()
   if (!user) return { error: 'Not authenticated' as const, user: null }
+  // Status is otherwise only enforced at login (see `login` in actions/auth.ts)
+  // and the middleware checks cookie presence only, so a session issued before
+  // the account was deactivated would still pass a role-only check.
+  if (user.status !== 'active') return { error: 'Your account is not active' as const, user: null }
   if (user.role !== 'admin') return { error: 'Admin access required' as const, user: null }
   return { error: null, user }
 }
@@ -378,6 +384,44 @@ export async function changePassword(_prevState: ActionResult, formData: FormDat
   await prisma.user.update({ where: { id: user.id }, data: { passwordHash } })
 
   return { success: true }
+}
+
+/**
+ * Admin-only password reset for another user.
+ *
+ * Returns the new plaintext password so the admin can hand it to the user —
+ * this app has no email delivery (see MVP scope), so the one-time display in
+ * the dialog is the only way it reaches them. The plaintext is never persisted:
+ * only the bcrypt hash is written, and the value is not logged.
+ */
+export async function resetUserPassword(
+  data: unknown
+): Promise<ActionResult & { password?: string }> {
+  const { error, user } = await requireAdmin()
+  if (error) return { success: false, error }
+
+  const parsed = resetUserPasswordSchema.safeParse(data)
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' }
+
+  // Admins change their own password from Settings -> Account, where the
+  // current password is verified first.
+  if (user.id === parsed.data.userId) {
+    return { success: false, error: 'Use Settings \u2192 Account to change your own password' }
+  }
+
+  const target = await prisma.user.findUnique({
+    where: { id: parsed.data.userId },
+    select: { id: true },
+  })
+  if (!target) return { success: false, error: 'User not found' }
+
+  const newPassword = parsed.data.password ?? generatePassword()
+  const passwordHash = await bcrypt.hash(newPassword, 12)
+
+  await prisma.user.update({ where: { id: parsed.data.userId }, data: { passwordHash } })
+
+  revalidatePath('/settings/users')
+  return { success: true, password: newPassword }
 }
 
 export async function getActiveStagesBasic() {

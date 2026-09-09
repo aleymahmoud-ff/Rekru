@@ -57,6 +57,23 @@ export const createUserSchema = z.object({
   role: z.enum(['admin', 'user']),
 })
 
+export const resetUserPasswordSchema = z.object({
+  userId: z.string().min(1),
+  // Omitted means "generate a secure password server-side". An empty string is
+  // rejected rather than treated as omitted, so a blank field can never be
+  // mistaken for a deliberate choice.
+  password: z
+    .string()
+    // Trim first so a whitespace-only value fails the length check rather than
+    // becoming an unusable password nobody can retype.
+    .trim()
+    .min(8, 'Password must be at least 8 characters')
+    // bcrypt silently truncates beyond 72 bytes, so accepting more would be a
+    // misleading contract.
+    .max(72, 'Password must be at most 72 characters')
+    .optional(),
+})
+
 export const setUserAccessSchema = z.object({
   userId: z.string().min(1),
   stageIds: z.array(z.string()),

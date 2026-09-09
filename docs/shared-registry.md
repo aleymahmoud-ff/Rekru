@@ -24,6 +24,7 @@
 | `getSession()` | `src/lib/auth.ts` | Returns the iron-session instance for the current request | Nabil |
 | `getCurrentUser()` | `src/lib/auth.ts` | Reads session + fetches user from DB; returns `AuthUser \| null` (no password hash) | Nabil |
 | `SESSION_OPTIONS` | `src/lib/auth.ts` | Shared iron-session config (cookie name, TTL, security flags) | Nabil |
+| `generatePassword(length?)` | `src/lib/password.ts` | Cryptographically secure random password generator (`crypto.randomInt`, unambiguous charset, guaranteed complexity). Server-side only — use this rather than hand-rolling `Math.random` passwords | Nabil |
 
 ---
 
@@ -36,6 +37,7 @@
 | `CANDIDATE_STATUSES` | `src/config/stages.ts` | All candidate pipeline status values | Nabil |
 | `loginSchema` | `src/lib/validations/auth.ts` | Zod schema for login form (email + password) | Nabil |
 | `registerSchema` | `src/lib/validations/auth.ts` | Zod schema for registration form (fullName + email + password) | Nabil |
+| `GENERATED_PASSWORD_LENGTH` | `src/lib/password.ts` | Default length (14) of an auto-generated password | Nabil |
 | `APP_SETTINGS_ID` | `src/lib/app-settings.ts` | Fixed primary key (`'singleton'`) of the one `app_settings` row — use it for every read/upsert of branding settings | Nabil |
 
 ---
@@ -60,6 +62,7 @@
 |------|-----------|---------|------------|
 | `<Sidebar>` | `src/components/layout/sidebar.tsx` | Fixed left nav with role-aware settings section and logout. Props: `user: AuthUser` | Yoki |
 | `<PageHeader>` | `src/components/shared/page-header.tsx` | Reusable page title/description/action bar. Props: `title`, `description?`, `action?` | Yoki |
+| `<ResetPasswordDialog>` | `src/components/settings/reset-password-dialog.tsx` | Admin-only dialog to reset another user's password (auto-generate or set manually) and display the new password once with copy-to-clipboard. Props: `userId`, `userName`, `userEmail` | Yoki |
 | `<CvViewLink>` | `src/components/candidates/cv-view-link.tsx` | "View CV" link. Opens self-hosted PDFs in an in-page modal viewer; falls back to a new tab otherwise. Props: `url`, `title`, `canPreview`, `className?`, `showExternalHint?`. Use this rather than hand-rolling a CV link. | Yoki |
 
 ---
