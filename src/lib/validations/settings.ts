@@ -57,6 +57,16 @@ export const createUserSchema = z.object({
   role: z.enum(['admin', 'user']),
 })
 
+export const resetUserPasswordSchema = z.object({
+  userId: z.string().min(1),
+  // Omitted (or empty) means "generate a secure password server-side".
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .max(128, 'Password must be at most 128 characters')
+    .optional(),
+})
+
 export const setUserAccessSchema = z.object({
   userId: z.string().min(1),
   stageIds: z.array(z.string()),
